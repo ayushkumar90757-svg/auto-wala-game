@@ -1,0 +1,16 @@
+{
+  "appId": "com.autowala.indiancitylife",
+  "appName": "Auto Wala: Indian City Life",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true,
+    "backgroundColor": "#0b0c10"
+  }
+}

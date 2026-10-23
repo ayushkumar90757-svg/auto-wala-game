@@ -1,0 +1,23 @@
+{
+  "name": "auto-wala-indian-city-life",
+  "version": "1.0.0",
+  "description": "3D Indian Auto Rickshaw Driving Simulator Game",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync:android": "vite build && powershell -Command \"Copy-Item -Path dist\\* -Destination android\\app\\src\\main\\assets\\public -Recurse -Force\"",
+    "build:apk": "npm run sync:android && cd android && gradlew assembleDebug",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/core": "^8.5.3",
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.12"
+  }
+}
