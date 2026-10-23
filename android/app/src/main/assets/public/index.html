@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>AUTO WALA: Indian City Life - 3D Auto Rickshaw Driving Simulator</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#FFB800" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800&family=Yatra+One&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-DknvF72_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dvq08ORe.css">
+</head>
+<body>
+  <!-- 3D Canvas -->
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- 3D Floating 2D Overlay: Direction Arrow -->
+    <div id="nav-arrow-container">
+      <div id="nav-arrow">▲</div>
+      <div id="nav-dist-label">120m</div>
+    </div>
+
+    <!-- HUD Overlay -->
+    <div id="hud-overlay" class="hidden">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="stat-card wallet-card">
+          <span class="stat-icon">💵</span>
+          <div class="stat-info">
+            <span class="stat-label">CASH</span>
+            <span class="stat-val" id="hud-cash">₹500</span>
+          </div>
+        </div>
+
+        <div class="mission-bar" id="hud-mission-bar">
+          <span class="mission-badge" id="hud-mission-badge">FREE ROAM</span>
+          <span class="mission-text" id="hud-mission-text">Find passengers hailed along the roadside!</span>
+        </div>
+
+        <div class="top-actions">
+          <button class="icon-btn" id="btn-env-toggle" title="Toggle Day/Night">☀️</button>
+          <button class="icon-btn" id="btn-weather-toggle" title="Toggle Rain">🌧️</button>
+          <button class="icon-btn" id="btn-cam-toggle" title="Switch Camera (C)">🎥</button>
+          <button class="icon-btn" id="btn-pause" title="Pause Game (ESC)">⏸️</button>
+        </div>
+      </div>
+
+      <!-- Passenger Dialog Bubble -->
+      <div id="dialog-bubble" class="dialog-bubble hidden">
+        <div class="dialog-avatar" id="dialog-avatar">👨🏽</div>
+        <div class="dialog-content">
+          <div class="dialog-name" id="dialog-name">Ramesh Uncle</div>
+          <div class="dialog-msg" id="dialog-msg">"Bhaiya, Railway Station jaldi chaloge? Train chhoot jayegi!"</div>
+        </div>
+      </div>
+
+      <!-- Fare Meter & Active Ride Card -->
+      <div id="ride-card" class="ride-card hidden">
+        <div class="ride-header">
+          <span class="meter-flag">FARE METER</span>
+          <span class="meter-status" id="meter-status">RUNNING</span>
+        </div>
+        <div class="meter-display">
+          <div class="meter-item">
+            <span class="m-label">FARE</span>
+            <span class="m-val" id="meter-fare">₹30.00</span>
+          </div>
+          <div class="meter-divider"></div>
+          <div class="meter-item">
+            <span class="m-label">DIST</span>
+            <span class="m-val" id="meter-dist">0.0 km</span>
+          </div>
+        </div>
+        <div class="ride-dest">
+          <span class="dest-icon">📍</span>
+          <span class="dest-name" id="ride-dest-name">Railway Station</span>
+        </div>
+      </div>
+
+      <!-- Minimap Radar -->
+      <div id="minimap-container">
+        <canvas id="minimap-canvas" width="160" height="160"></canvas>
+        <div class="minimap-north">N</div>
+        <div class="minimap-center-marker">▲</div>
+      </div>
+
+      <!-- Speedometer & Vehicle Controls Status -->
+      <div class="speedo-container">
+        <div class="speedo-dial">
+          <svg class="speedo-svg" viewBox="0 0 160 160">
+            <circle class="speedo-bg-track" cx="80" cy="80" r="65" />
+            <circle class="speedo-fill-track" id="speedo-fill" cx="80" cy="80" r="65" />
+          </svg>
+          <div class="speedo-inner">
+            <div class="gear-tag" id="hud-gear">1</div>
+            <div class="speed-num" id="hud-speed">0</div>
+            <div class="speed-unit">KM/H</div>
+          </div>
+        </div>
+
+        <div class="vehicle-gauges">
+          <!-- Nitro Gauge -->
+          <div class="gauge-bar-wrap">
+            <span class="gauge-label">⚡ NOS</span>
+            <div class="gauge-bar">
+              <div class="gauge-fill nitro-fill" id="hud-nitro-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <!-- Auto Condition -->
+          <div class="gauge-bar-wrap">
+            <span class="gauge-label">🔧 AUTO</span>
+            <div class="gauge-bar">
+              <div class="gauge-fill health-fill" id="hud-health-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Penalty / Reward Notifications Banner -->
+      <div id="alert-banner" class="alert-banner hidden">
+        <span class="alert-icon" id="alert-icon">🚨</span>
+        <span class="alert-text" id="alert-text">Challan Issued: Red Light -₹200</span>
+      </div>
+
+      <!-- Mobile Touch Controls -->
+      <div id="touch-controls">
+        <!-- Left Side: Steering -->
+        <div class="touch-left">
+          <button class="touch-btn steer-btn" id="touch-left">◀</button>
+          <button class="touch-btn steer-btn" id="touch-right">▶</button>
+        </div>
+        <!-- Center Quick Horn -->
+        <div class="touch-center">
+          <button class="touch-btn horn-btn" id="touch-horn">🎺 HORN</button>
+          <button class="touch-btn nos-btn" id="touch-nos">⚡ NOS</button>
+        </div>
+        <!-- Right Side: Gas & Brake -->
+        <div class="touch-right">
+          <button class="touch-btn brake-btn" id="touch-brake">REVERSE / BRAKE</button>
+          <button class="touch-btn gas-btn" id="touch-gas">ACCELERATE</button>
+          <button class="touch-btn handbrake-btn" id="touch-handbrake">HANDBRAKE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="main-menu" class="screen-overlay">
+      <div class="menu-decor top-garland"></div>
+      
+      <div class="menu-hero">
+        <div class="desi-badge">★ DESI 3D DRIVING SIMULATOR ★</div>
+        <h1 class="game-title">
+          <span class="title-sub">AUTO WALA</span>
+          <span class="title-main">INDIAN CITY LIFE</span>
+        </h1>
+        <p class="game-tagline">“Meter se chalenge bhaiya, kahin bhi bolo!”</p>
+      </div>
+
+      <div class="menu-buttons">
+        <button class="desi-btn btn-primary" id="btn-menu-career">
+          <span class="btn-icon">🛺</span>
+          <span class="btn-text">CAREER MISSIONS</span>
+          <span class="btn-sub">Pick passengers, earn rupees, beat challenges</span>
+        </button>
+
+        <button class="desi-btn btn-secondary" id="btn-menu-freeroam">
+          <span class="btn-icon">🏙️</span>
+          <span class="btn-text">FREE ROAM CITY</span>
+          <span class="btn-sub">Drive freely through Mumbai & Delhi streets</span>
+        </button>
+
+        <button class="desi-btn btn-garage" id="btn-menu-garage">
+          <span class="btn-icon">🔧</span>
+          <span class="btn-text">GARAGE & UPGRADES</span>
+          <span class="btn-sub">Tune speed, customize colors & desi decals</span>
+        </button>
+
+        <div class="menu-row">
+          <button class="desi-btn btn-small" id="btn-menu-daily">
+            <span class="btn-icon">🏆</span>
+            <span class="btn-text">Daily Challenges</span>
+          </button>
+          <button class="desi-btn btn-small" id="btn-menu-howto">
+            <span class="btn-icon">📖</span>
+            <span class="btn-text">How to Play</span>
+          </button>
+          <button class="desi-btn btn-small" id="btn-menu-settings">
+            <span class="btn-icon">⚙️</span>
+            <span class="btn-text">Settings</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-footer">
+        <div class="player-summary-badge">
+          <span>Wallet: <strong id="menu-wallet-val">₹500</strong></span>
+          <span>•</span>
+          <span>Auto: <strong id="menu-auto-skin">Delhi Classic</strong></span>
+        </div>
+        <div class="controls-hint">PC: WASD / Arrow Keys, Space = Handbrake, H = Horn, C = Camera | Mobile: On-Screen Touch</div>
+      </div>
+    </div>
+
+    <!-- GARAGE MODAL -->
+    <div id="garage-modal" class="screen-overlay hidden">
+      <div class="modal-box garage-box">
+        <div class="modal-header">
+          <h2>🔧 AUTO WALA WORKSHOP & GARAGE</h2>
+          <button class="modal-close-btn" id="btn-close-garage">✖</button>
+        </div>
+
+        <div class="garage-content">
+          <!-- Garage Tabs -->
+          <div class="garage-tabs">
+            <button class="tab-btn active" data-tab="upgrades">⚙️ Upgrades</button>
+            <button class="tab-btn" data-tab="paint">🎨 Paint & Skins</button>
+            <button class="tab-btn" data-tab="decals">✨ Desi Decals</button>
+            <button class="tab-btn" data-tab="horns">🎺 Horn Tunes</button>
+          </div>
+
+          <!-- Tab: Upgrades -->
+          <div class="tab-pane active" id="tab-upgrades">
+            <div class="upgrade-grid">
+              <div class="upgrade-card" data-upgrade="speed">
+                <div class="uc-header">
+                  <span class="uc-title">🚀 2-Stroke Engine Tuning</span>
+                  <span class="uc-level" id="lvl-speed">Level 1 / 5</span>
+                </div>
+                <p class="uc-desc">Increases max top speed from 45 to 85 km/h.</p>
+                <div class="uc-progress"><div class="uc-progress-fill" id="bar-speed" style="width: 20%;"></div></div>
+                <button class="desi-btn btn-upgrade" id="btn-up-speed">Upgrade (₹300)</button>
+              </div>
+
+              <div class="upgrade-card" data-upgrade="accel">
+                <div class="uc-header">
+                  <span class="uc-title">⚡ Clutch & Throttle Response</span>
+                  <span class="uc-level" id="lvl-accel">Level 1 / 5</span>
+                </div>
+                <p class="uc-desc">Accelerates 40% faster from traffic stops.</p>
+                <div class="uc-progress"><div class="uc-progress-fill" id="bar-accel" style="width: 20%;"></div></div>
+                <button class="desi-btn btn-upgrade" id="btn-up-accel">Upgrade (₹250)</button>
+              </div>
+
+              <div class="upgrade-card" data-upgrade="brakes">
+                <div class="uc-header">
+                  <span class="uc-title">🛑 Drum to Disc Brakes</span>
+                  <span class="uc-level" id="lvl-brakes">Level 1 / 5</span>
+                </div>
+                <p class="uc-desc">Instant stopping power to avoid red light fines.</p>
+                <div class="uc-progress"><div class="uc-progress-fill" id="bar-brakes" style="width: 20%;"></div></div>
+                <button class="desi-btn btn-upgrade" id="btn-up-brakes">Upgrade (₹200)</button>
+              </div>
+
+              <div class="upgrade-card" data-upgrade="nitro">
+                <div class="uc-header">
+                  <span class="uc-title">🔥 Desi NOS Cylinder</span>
+                  <span class="uc-level" id="lvl-nitro">Level 1 / 3</span>
+                </div>
+                <p class="uc-desc">High-speed turbo boost with quick recharge.</p>
+                <div class="uc-progress"><div class="uc-progress-fill" id="bar-nitro" style="width: 33%;"></div></div>
+                <button class="desi-btn btn-upgrade" id="btn-up-nitro">Upgrade (₹500)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab: Paint & Skins -->
+          <div class="tab-pane" id="tab-paint">
+            <div class="skins-grid" id="skins-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Tab: Desi Decals -->
+          <div class="tab-pane" id="tab-decals">
+            <div class="decals-grid" id="decals-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Tab: Horns -->
+          <div class="tab-pane" id="tab-horns">
+            <div class="horns-grid" id="horns-grid">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="garage-footer">
+          <div class="wallet-badge">Your Balance: <strong id="garage-wallet-val">₹500</strong></div>
+          <button class="desi-btn btn-primary" id="btn-garage-testdrive">TAKE FOR TEST DRIVE 🛺</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAREER MISSIONS MODAL -->
+    <div id="career-modal" class="screen-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>🛺 CAREER MODE: DILWALON KI NAGRI</h2>
+          <button class="modal-close-btn" id="btn-close-career">✖</button>
+        </div>
+        <p class="modal-subtitle">Complete missions, earn respect and virtual rupees to become the King of Indian Auto Walas!</p>
+        
+        <div class="missions-list" id="missions-list">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- DAILY CHALLENGES MODAL -->
+    <div id="daily-modal" class="screen-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>🏆 TODAY'S AUTO WALA CHALLENGES</h2>
+          <button class="modal-close-btn" id="btn-close-daily">✖</button>
+        </div>
+        <div class="daily-list" id="daily-list">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- HOW TO PLAY MODAL -->
+    <div id="howto-modal" class="screen-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>📖 DRIVER'S HANDBOOK: HOW TO PLAY</h2>
+          <button class="modal-close-btn" id="btn-close-howto">✖</button>
+        </div>
+        <div class="howto-content">
+          <div class="guide-section">
+            <h3>🎮 Controls</h3>
+            <div class="keys-grid">
+              <div class="key-item"><kbd>W</kbd> or <kbd>▲</kbd> <span>Accelerate Gas</span></div>
+              <div class="key-item"><kbd>S</kbd> or <kbd>▼</kbd> <span>Brake / Reverse Gear</span></div>
+              <div class="key-item"><kbd>A</kbd> / <kbd>D</kbd> or <kbd>◀</kbd> / <kbd>▶</kbd> <span>Steer Left / Right (3-Wheel Lean)</span></div>
+              <div class="key-item"><kbd>SPACE</kbd> <span>Handbrake / Rickshaw Drift</span></div>
+              <div class="key-item"><kbd>H</kbd> <span>Blow Desi Horn (Pee-Poo!)</span></div>
+              <div class="key-item"><kbd>SHIFT</kbd> <span>NOS Speed Booster</span></div>
+              <div class="key-item"><kbd>C</kbd> <span>Switch Camera (Chase / Driver POV)</span></div>
+              <div class="key-item"><kbd>R</kbd> <span>Reset Auto Rickshaw Position</span></div>
+              <div class="key-item"><kbd>M</kbd> <span>Minimap Focus</span></div>
+            </div>
+          </div>
+
+          <div class="guide-section">
+            <h3>🚦 Indian Traffic Rules & Fines</h3>
+            <ul class="rules-list">
+              <li>🟢 <strong>Green Light:</strong> Free to drive.</li>
+              <li>🔴 <strong>Red Light:</strong> Stop before the zebra crossing line! Jumping red lights triggers traffic police fine (<strong>₹200</strong>).</li>
+              <li>⚠️ <strong>Market Zone Speed Limits:</strong> Keep speed under 40 km/h in crowded markets to avoid speeding challans.</li>
+              <li>💥 <strong>Vehicle Collisions:</strong> Crashing into cars, buses, or barriers damages your auto and reduces passenger tip.</li>
+            </ul>
+          </div>
+
+          <div class="guide-section">
+            <h3>💰 Passengers & Fares</h3>
+            <p>Look for passengers standing roadside waving with a <strong>glowing yellow halo</strong>. Stop inside the pickup marker. Follow the <strong>3D navigation arrow</strong> to their destination and park in the <strong>green dropoff zone</strong> to collect base fare + distance fare + bonus tips!</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="desi-btn btn-primary" id="btn-close-howto-bottom">CHALO AUTO CHALAYEIN! 🛺</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="screen-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2>⚙️ GAME SETTINGS</h2>
+          <button class="modal-close-btn" id="btn-close-settings">✖</button>
+        </div>
+        <div class="settings-content">
+          <div class="setting-row">
+            <span>Graphics Quality</span>
+            <select id="setting-graphics" class="desi-select">
+              <option value="high">High (Shadows & Full Effects)</option>
+              <option value="medium" selected>Medium (Smooth Balanced)</option>
+              <option value="low">Low (Fast Performance)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>City Traffic Density</span>
+            <select id="setting-traffic" class="desi-select">
+              <option value="high">High (Delhi Rush Hour)</option>
+              <option value="medium" selected>Normal (Standard City)</option>
+              <option value="low">Light (Casual Cruise)</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <span>Audio Sound Effects</span>
+            <input type="range" id="setting-volume" min="0" max="100" value="80" class="desi-slider" />
+          </div>
+          <div class="setting-row">
+            <span>Mobile Touch Controls</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="setting-touch" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="desi-btn btn-secondary" id="btn-reset-save">Reset Game Save Data</button>
+          <button class="desi-btn btn-primary" id="btn-save-settings">Save & Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAUSE MENU -->
+    <div id="pause-modal" class="screen-overlay hidden">
+      <div class="modal-box pause-box">
+        <h2>GAME PAUSED</h2>
+        <div class="pause-buttons">
+          <button class="desi-btn btn-primary" id="btn-resume">RESUME DRIVING 🛺</button>
+          <button class="desi-btn btn-secondary" id="btn-pause-restart">RESTART MISSION 🔄</button>
+          <button class="desi-btn btn-garage" id="btn-pause-garage">WORKSHOP / GARAGE 🔧</button>
+          <button class="desi-btn btn-small" id="btn-pause-menu">QUIT TO MAIN MENU 🏠</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MISSION COMPLETE / REWARD POPUP -->
+    <div id="mission-result-modal" class="screen-overlay hidden">
+      <div class="modal-box result-box">
+        <div class="result-garland">🎉 SHABASH AUTO WALA! 🎉</div>
+        <h2 id="result-title">RIDE COMPLETED!</h2>
+        <div class="result-details">
+          <div class="res-row">
+            <span>Base Fare:</span>
+            <strong id="res-base-fare">₹30</strong>
+          </div>
+          <div class="res-row">
+            <span>Distance Traveled:</span>
+            <strong id="res-dist">1.4 km</strong>
+          </div>
+          <div class="res-row">
+            <span>Safe Driving Tip:</span>
+            <strong id="res-tip" class="tip-bonus">+₹45</strong>
+          </div>
+          <div class="res-divider"></div>
+          <div class="res-row total-row">
+            <span>Total Earnings:</span>
+            <strong id="res-total">₹155</strong>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="desi-btn btn-primary" id="btn-result-continue">CONTINUE NEXT RIDE 🛺</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
