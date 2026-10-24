@@ -23,6 +23,8 @@ export class VehiclePhysics {
     // Vehicle Health & Nitro
     this.health = 100;
     this.maxHealth = 100;
+    this.isDead = false;
+    this.onGameOver = null;
     this.nitro = 100;
     this.maxNitro = 100;
     this.isNitroActive = false;
@@ -73,13 +75,14 @@ export class VehiclePhysics {
   }
 
   update(dt) {
+    if (this.isDead) return;
     dt = Math.min(0.05, Math.max(0.001, dt)); // Clamp dt for stability
 
     // 1. Steering Dynamics
     // High responsiveness at low speed, gentle at high speed
     const speedRatio = Math.min(1.0, Math.abs(this.speedKmh) / 60);
     const targetMaxSteer = this.specs.maxSteerAngle * (1.0 - speedRatio * 0.45);
-    const targetSteer = -this.steerInput * targetMaxSteer;
+    const targetSteer = this.steerInput * targetMaxSteer;
 
     // Smooth steering interpolation
     this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1.0, this.specs.steerSpeed * 3.5 * dt);
@@ -155,10 +158,24 @@ export class VehiclePhysics {
     this.position.x += vx * dt;
     this.position.z += vz * dt;
 
+    // World boundary guard
+    const bound = 270;
+    if (this.position.x > bound) { this.position.x = bound; this.speed = -this.speed * 0.2; }
+    if (this.position.x < -bound) { this.position.x = -bound; this.speed = -this.speed * 0.2; }
+    if (this.position.z > bound) { this.position.z = bound; this.speed = -this.speed * 0.2; }
+    if (this.position.z < -bound) { this.position.z = -bound; this.speed = -this.speed * 0.2; }
+
     this.speedKmh = this.speed * 3.6;
 
     // 6. Collision Check with Static Obstacles (buildings, barriers, lamp posts)
     this.checkCollisions(oldX, oldZ);
+
+    if (this.health <= 0 && !this.isDead) {
+      this.isDead = true;
+      this.speed = 0;
+      this.speedKmh = 0;
+      if (this.onGameOver) this.onGameOver();
+    }
 
     // 7. Update 3D Rickshaw Visuals
     const isBraking = (this.brakeInput > 0 && this.speed > 0.5) || this.isHandbrake;
@@ -239,10 +256,12 @@ export class VehiclePhysics {
     this.speed = 0;
     this.speedKmh = 0;
     this.steerAngle = 0;
+    this.isDead = false;
     this.rickshaw.chassis.rotation.set(0, 0, 0);
   }
 
   repair() {
     this.health = this.maxHealth;
+    this.isDead = false;
   }
 }

@@ -36,6 +36,8 @@ class Game {
     this.cameraModes = ['chase', 'far_chase', 'cockpit', 'hood'];
     this.currentCameraIdx = 0;
     this.cameraMode = this.cameraModes[this.currentCameraIdx];
+    this.gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'gameover'
+    this.menuCameraAngle = 0;
 
     // Environment Lighting
     this.isNight = false;
@@ -100,23 +102,21 @@ class Game {
       }
     };
 
+    // Game Over Handler
+    this.physics.onGameOver = () => {
+      this.gameState = 'gameover';
+      sound.forceSilence();
+      sound.playCrashBump();
+      this.ui.showGameOver();
+      this.ui.showAlert('💥 Auto Totaled! Repair & respawn.', '🚨', false);
+    };
+
     // UI Manager
     this.ui = new UIManager(this.garage, this.missionManager);
     this.setupUICallbacks();
 
     // Resize listener
     window.addEventListener('resize', () => this.onWindowResize());
-
-    // Start engine sound on first user interaction
-    const startAudioOnce = () => {
-      sound.startEngine();
-      window.removeEventListener('keydown', startAudioOnce);
-      window.removeEventListener('click', startAudioOnce);
-      window.removeEventListener('touchstart', startAudioOnce);
-    };
-    window.addEventListener('keydown', startAudioOnce);
-    window.addEventListener('click', startAudioOnce);
-    window.addEventListener('touchstart', startAudioOnce);
 
     // Start loop
     this.animate();
@@ -203,7 +203,9 @@ class Game {
 
   setupUICallbacks() {
     this.ui.onStartGame = (mode, missionId) => {
+      this.gameState = 'playing';
       sound.startEngine();
+
       if (mode === 'mission' && missionId) {
         const m = this.missionManager.startMission(missionId);
         document.getElementById('hud-mission-badge').innerText = 'CAREER MISSION';
@@ -214,10 +216,46 @@ class Game {
         if (landmark) {
           this.physics.reset(landmark.x > 0 ? landmark.x - 4 : landmark.x + 4, landmark.z, 0);
         }
+        this.passengers.setMissionPassenger(m.pickupKey, m.destKey, m.title);
       } else {
         document.getElementById('hud-mission-badge').innerText = 'FREE ROAM';
         document.getElementById('hud-mission-text').innerText = 'Drive freely & pick up roadside passengers!';
+        this.missionManager.activeMission = null;
+        this.passengers.reset();
       }
+    };
+
+    this.ui.onPauseGame = () => {
+      this.gameState = 'paused';
+      sound.forceSilence();
+    };
+
+    this.ui.onResumeGame = () => {
+      this.gameState = 'playing';
+      sound.startEngine();
+    };
+
+    this.ui.onRestartGame = () => {
+      this.physics.repair();
+      if (this.missionManager.activeMission) {
+        const m = this.missionManager.activeMission;
+        const landmark = this.city.landmarks[m.pickupKey];
+        this.physics.reset(landmark ? (landmark.x > 0 ? landmark.x - 4 : landmark.x + 4) : 4.5, landmark ? landmark.z : -30, 0);
+        this.passengers.setMissionPassenger(m.pickupKey, m.destKey, m.title);
+      } else {
+        this.physics.reset(4.5, -30, 0);
+        this.passengers.reset();
+      }
+      this.gameState = 'playing';
+      sound.startEngine();
+      this.ui.showAlert('Auto Rickshaw Repaired & Ready!', '🛺', true);
+    };
+
+    this.ui.onQuitToMenu = () => {
+      this.gameState = 'menu';
+      sound.forceSilence();
+      this.physics.reset(4.5, -30, 0);
+      this.missionManager.activeMission = null;
     };
 
     this.ui.onToggleCamera = () => this.switchCamera();
@@ -229,7 +267,9 @@ class Game {
     };
 
     this.ui.onPlayHorn = () => {
-      sound.playHorn(this.garage.state.currentHorn);
+      if (this.gameState === 'playing') {
+        sound.playHorn(this.garage.state.currentHorn);
+      }
     };
     this.ui.onStopHorn = () => {
       sound.stopHorn();
@@ -299,31 +339,48 @@ class Game {
 
     const dt = this.clock.getDelta();
 
-    // 1. Update Vehicle Physics with user inputs
-    this.physics.setInputs(this.ui.inputs);
-    this.physics.update(dt);
+    if (this.gameState === 'playing') {
+      // 1. Update Vehicle Physics with user inputs
+      this.physics.setInputs(this.ui.inputs);
+      this.physics.update(dt);
 
-    // 2. Update Engine Audio Synthesizer
-    sound.updateEngine(this.physics.speedKmh, this.ui.inputs.throttle, this.physics.isReversing);
+      // 2. Update Engine Audio Synthesizer
+      sound.updateEngine(this.physics.speedKmh, this.ui.inputs.throttle, this.physics.isReversing);
 
-    // 3. Update AI Traffic
-    this.traffic.update(
-      dt,
-      this.physics.position,
-      this.physics.speedKmh,
-      (dir) => this.rules.isRed(dir)
-    );
+      // 3. Update AI Traffic
+      this.traffic.update(
+        dt,
+        this.physics.position,
+        this.physics.speedKmh,
+        (dir) => this.rules.isRed(dir)
+      );
 
-    // 4. Update Traffic Rules (Signals & Challans)
-    this.rules.update(dt, this.physics.position, this.physics.speedKmh);
+      // 4. Update Traffic Rules (Signals & Challans)
+      this.rules.update(dt, this.physics.position, this.physics.speedKmh);
 
-    // 5. Update Passenger Rides
-    this.passengers.update(dt, this.physics.position, this.physics.speedKmh);
+      // 5. Update Passenger Rides
+      this.passengers.update(dt, this.physics.position, this.physics.speedKmh);
 
-    // 6. Update Career Missions
-    const missionStatus = this.missionManager.update(dt, this.physics.speedKmh, this.ui.inputs.handbrake);
-    if (missionStatus && missionStatus.status === 'failed') {
-      this.ui.showAlert(`❌ ${missionStatus.reason}`, '⚠️', false);
+      // 6. Update Career Missions
+      const missionStatus = this.missionManager.update(dt, this.physics.speedKmh, this.ui.inputs.handbrake);
+      if (missionStatus && missionStatus.status === 'failed') {
+        this.ui.showAlert(`❌ ${missionStatus.reason}`, '⚠️', false);
+      }
+
+      // Camera follows vehicle
+      this.updateCamera(dt);
+    } else if (this.gameState === 'menu') {
+      // Cinematic idle showcase camera rotating slowly around auto
+      this.menuCameraAngle += dt * 0.25;
+      const camDist = 7.5;
+      const px = this.physics.position.x;
+      const pz = this.physics.position.z;
+      this.camera.position.set(
+        px + Math.sin(this.menuCameraAngle) * camDist,
+        2.5,
+        pz + Math.cos(this.menuCameraAngle) * camDist
+      );
+      this.camera.lookAt(px, 1.2, pz);
     }
 
     // 7. Update Rain Particles
@@ -344,11 +401,8 @@ class Game {
       posAttr.needsUpdate = true;
     }
 
-    // 8. Update Camera Position & Smoothing
-    this.updateCamera(dt);
-
-    // 9. Update UI & HUD
-    const activeDest = this.passengers.getActiveDestination();
+    // 8. Update UI & HUD (only passes active destination when gameplay is active)
+    const activeDest = this.gameState === 'playing' ? this.passengers.getActiveDestination() : null;
     this.ui.updateHUD(
       this.physics.speedKmh,
       this.physics.health,
@@ -361,7 +415,7 @@ class Game {
       this.traffic.getTrafficVehicles()
     );
 
-    // 10. Render 3D Scene
+    // 9. Render 3D Scene
     this.renderer.render(this.scene, this.camera);
   }
 

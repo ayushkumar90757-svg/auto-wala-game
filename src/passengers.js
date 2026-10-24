@@ -187,6 +187,43 @@ export class PassengerSystem {
     this.dropoffZoneMesh.visible = false;
   }
 
+  setMissionPassenger(pickupKey, destKey, missionTitle) {
+    this.hasActiveRide = false;
+    this.rickshaw.setPassengerVisible(false);
+
+    const pickupLandmark = this.city.landmarks[pickupKey] || { x: 13.5, z: -35, name: 'Pickup Point' };
+    const destLandmark = this.city.landmarks[destKey] || this.city.landmarks.railway;
+
+    const profile = this.passengerProfiles.find(p => p.destKey === destKey) || this.passengerProfiles[0];
+
+    this.currentPassenger = {
+      ...profile,
+      pickupX: pickupLandmark.x,
+      pickupZ: pickupLandmark.z,
+      destination: destLandmark
+    };
+
+    this.pickupZoneMesh.position.set(pickupLandmark.x, 0.15, pickupLandmark.z);
+    this.pickupZoneMesh.visible = true;
+
+    this.hailingPassengerMesh.position.set(pickupLandmark.x > 0 ? pickupLandmark.x + 1.2 : pickupLandmark.x - 1.2, 0, pickupLandmark.z);
+    this.hailingPassengerMesh.visible = true;
+
+    this.dropoffZoneMesh.visible = false;
+  }
+
+  reset() {
+    this.hasActiveRide = false;
+    this.currentDestination = null;
+    this.tripDistanceKm = 0;
+    this.tripFare = 30;
+    this.tripDurationSec = 0;
+    this.crashesDuringTrip = 0;
+    this.rickshaw.setPassengerVisible(false);
+    if (this.dropoffZoneMesh) this.dropoffZoneMesh.visible = false;
+    this.spawnNextWaitingPassenger();
+  }
+
   // Update loop: checks pickup, runs fare meter, checks dropoff
   update(dt, playerPos, playerSpeedKmh) {
     const time = performance.now() * 0.003;

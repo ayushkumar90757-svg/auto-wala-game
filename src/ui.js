@@ -58,6 +58,7 @@ export class UIManager {
     this.settingsModal = document.getElementById('settings-modal');
     this.pauseModal = document.getElementById('pause-modal');
     this.resultModal = document.getElementById('mission-result-modal');
+    this.gameoverModal = document.getElementById('gameover-modal');
 
     // Callbacks
     this.onStartGame = null;
@@ -67,27 +68,57 @@ export class UIManager {
     this.onToggleRain = null;
     this.onPlayHorn = null;
     this.onStopHorn = null;
+    this.onPauseGame = null;
+    this.onResumeGame = null;
+    this.onRestartGame = null;
+    this.onQuitToMenu = null;
 
+    this.keysDown = {};
     this.bindEvents();
     this.renderGarageCatalog();
     this.renderMissionsList();
     this.renderDailyList();
   }
 
+  isGameplayActive() {
+    return !this.hudOverlay.classList.contains('hidden') &&
+           this.mainMenu.classList.contains('hidden') &&
+           this.pauseModal.classList.contains('hidden') &&
+           (!this.gameoverModal || this.gameoverModal.classList.contains('hidden'));
+  }
+
+  resetAllInputs() {
+    this.keysDown = {};
+    this.touchSteer = 0;
+    this.touchThrottle = 0;
+    this.touchBrake = 0;
+    this.touchHandbrake = false;
+    this.touchNitro = false;
+    this.inputs.steer = 0;
+    this.inputs.throttle = 0;
+    this.inputs.brake = 0;
+    this.inputs.handbrake = false;
+    this.inputs.nitro = false;
+    document.querySelectorAll('.touch-btn').forEach(btn => btn.classList.remove('pressed'));
+  }
+
   bindEvents() {
     // 1. Keyboard Controls
-    const keysDown = {};
     window.addEventListener('keydown', (e) => {
-      keysDown[e.code] = true;
-
       if (e.code === 'KeyH') {
-        if (this.onPlayHorn) this.onPlayHorn();
+        if (!e.repeat && this.isGameplayActive()) {
+          if (this.onPlayHorn) this.onPlayHorn();
+        }
+        return;
       }
+
+      this.keysDown[e.code] = true;
+
       if (e.code === 'KeyC') {
-        if (this.onToggleCamera) this.onToggleCamera();
+        if (this.isGameplayActive() && this.onToggleCamera) this.onToggleCamera();
       }
       if (e.code === 'KeyR') {
-        if (this.onResetVehicle) this.onResetVehicle();
+        if (this.isGameplayActive() && this.onResetVehicle) this.onResetVehicle();
       }
       if (e.code === 'Escape') {
         this.togglePause();
@@ -95,8 +126,21 @@ export class UIManager {
     });
 
     window.addEventListener('keyup', (e) => {
-      keysDown[e.code] = false;
+      this.keysDown[e.code] = false;
       if (e.code === 'KeyH') {
+        if (this.onStopHorn) this.onStopHorn();
+      }
+    });
+
+    // Reset inputs & stop horn on window blur or tab switch
+    window.addEventListener('blur', () => {
+      this.resetAllInputs();
+      if (this.onStopHorn) this.onStopHorn();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.resetAllInputs();
         if (this.onStopHorn) this.onStopHorn();
       }
     });
@@ -106,13 +150,13 @@ export class UIManager {
       let throttle = 0;
       let brake = 0;
 
-      if (keysDown['KeyA'] || keysDown['ArrowLeft']) steer -= 1;
-      if (keysDown['KeyD'] || keysDown['ArrowRight']) steer += 1;
-      if (keysDown['KeyW'] || keysDown['ArrowUp']) throttle = 1;
-      if (keysDown['KeyS'] || keysDown['ArrowDown']) brake = 1;
+      if (this.keysDown['KeyA'] || this.keysDown['ArrowLeft']) steer -= 1;
+      if (this.keysDown['KeyD'] || this.keysDown['ArrowRight']) steer += 1;
+      if (this.keysDown['KeyW'] || this.keysDown['ArrowUp']) throttle = 1;
+      if (this.keysDown['KeyS'] || this.keysDown['ArrowDown']) brake = 1;
 
-      const handbrake = !!keysDown['Space'];
-      const nitro = !!(keysDown['ShiftLeft'] || keysDown['ShiftRight']);
+      const handbrake = !!this.keysDown['Space'];
+      const nitro = !!(this.keysDown['ShiftLeft'] || this.keysDown['ShiftRight']);
 
       // Blend touch inputs if active
       this.inputs.steer = steer !== 0 ? steer : this.touchSteer;
@@ -122,7 +166,7 @@ export class UIManager {
       this.inputs.nitro = nitro || this.touchNitro;
     };
 
-    // 2. Mobile Touch Buttons
+    // 2. Mobile Pointer & Touch Buttons
     this.touchSteer = 0;
     this.touchThrottle = 0;
     this.touchBrake = 0;
@@ -132,11 +176,35 @@ export class UIManager {
     const bindTouch = (id, onDown, onUp) => {
       const btn = document.getElementById(id);
       if (!btn) return;
-      btn.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); });
-      btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); });
-      btn.addEventListener('mousedown', onDown);
-      btn.addEventListener('mouseup', onUp);
-      btn.addEventListener('mouseleave', onUp);
+
+      let isDown = false;
+      const handleDown = (e) => {
+        if (e) {
+          e.preventDefault();
+          if (btn.setPointerCapture && e.pointerId !== undefined) {
+            try { btn.setPointerCapture(e.pointerId); } catch(err) {}
+          }
+        }
+        if (!isDown) {
+          isDown = true;
+          btn.classList.add('pressed');
+          onDown();
+        }
+      };
+
+      const handleUp = (e) => {
+        if (e) e.preventDefault();
+        if (isDown) {
+          isDown = false;
+          btn.classList.remove('pressed');
+          onUp();
+        }
+      };
+
+      btn.addEventListener('pointerdown', handleDown);
+      btn.addEventListener('pointerup', handleUp);
+      btn.addEventListener('pointercancel', handleUp);
+      btn.addEventListener('pointerleave', handleUp);
     };
 
     bindTouch('touch-left', () => this.touchSteer = -1, () => this.touchSteer = 0);
@@ -146,8 +214,12 @@ export class UIManager {
     bindTouch('touch-handbrake', () => this.touchHandbrake = true, () => this.touchHandbrake = false);
     bindTouch('touch-nos', () => this.touchNitro = true, () => this.touchNitro = false);
     bindTouch('touch-horn',
-      () => { if (this.onPlayHorn) this.onPlayHorn(); },
-      () => { if (this.onStopHorn) this.onStopHorn(); }
+      () => {
+        if (this.isGameplayActive() && this.onPlayHorn) this.onPlayHorn();
+      },
+      () => {
+        if (this.onStopHorn) this.onStopHorn();
+      }
     );
 
     // 3. Top Action Buttons
@@ -165,6 +237,15 @@ export class UIManager {
     });
 
     // 4. Main Menu Buttons
+    const btnStart = document.getElementById('btn-menu-start');
+    if (btnStart) {
+      btnStart.addEventListener('click', () => {
+        this.mainMenu.classList.add('hidden');
+        this.hudOverlay.classList.remove('hidden');
+        if (this.onStartGame) this.onStartGame('freeroam');
+      });
+    }
+
     document.getElementById('btn-menu-career').addEventListener('click', () => {
       this.careerModal.classList.remove('hidden');
     });
@@ -213,12 +294,13 @@ export class UIManager {
     // Pause Menu actions
     document.getElementById('btn-resume').addEventListener('click', () => {
       this.pauseModal.classList.add('hidden');
+      if (this.onResumeGame) this.onResumeGame();
     });
     const btnRestart = document.getElementById('btn-pause-restart');
     if (btnRestart) {
       btnRestart.addEventListener('click', () => {
         this.pauseModal.classList.add('hidden');
-        if (this.onResetVehicle) this.onResetVehicle();
+        if (this.onRestartGame) this.onRestartGame();
       });
     }
     document.getElementById('btn-pause-garage').addEventListener('click', () => {
@@ -229,7 +311,26 @@ export class UIManager {
       this.pauseModal.classList.add('hidden');
       this.hudOverlay.classList.add('hidden');
       this.mainMenu.classList.remove('hidden');
+      if (this.onQuitToMenu) this.onQuitToMenu();
     });
+
+    // Game Over Menu actions
+    const btnGoRestart = document.getElementById('btn-gameover-restart');
+    if (btnGoRestart) {
+      btnGoRestart.addEventListener('click', () => {
+        if (this.gameoverModal) this.gameoverModal.classList.add('hidden');
+        if (this.onRestartGame) this.onRestartGame();
+      });
+    }
+    const btnGoMenu = document.getElementById('btn-gameover-menu');
+    if (btnGoMenu) {
+      btnGoMenu.addEventListener('click', () => {
+        if (this.gameoverModal) this.gameoverModal.classList.add('hidden');
+        this.hudOverlay.classList.add('hidden');
+        this.mainMenu.classList.remove('hidden');
+        if (this.onQuitToMenu) this.onQuitToMenu();
+      });
+    }
 
     // Settings listeners
     const trafficSel = document.getElementById('setting-traffic');
@@ -296,8 +397,21 @@ export class UIManager {
   }
 
   togglePause() {
-    if (this.hudOverlay.classList.contains('hidden')) return;
-    this.pauseModal.classList.toggle('hidden');
+    if (this.hudOverlay.classList.contains('hidden') || (this.gameoverModal && !this.gameoverModal.classList.contains('hidden'))) return;
+    const isNowHidden = this.pauseModal.classList.toggle('hidden');
+    if (!isNowHidden) {
+      this.resetAllInputs();
+      if (this.onPauseGame) this.onPauseGame();
+    } else {
+      if (this.onResumeGame) this.onResumeGame();
+    }
+  }
+
+  showGameOver() {
+    if (this.gameoverModal) {
+      this.gameoverModal.classList.remove('hidden');
+    }
+    this.resetAllInputs();
   }
 
   updateGarageUI() {
@@ -544,7 +658,8 @@ export class UIManager {
     }
 
     // 3. 3D Navigation Arrow calculation
-    if (activeDestination) {
+    if (activeDestination && this.isGameplayActive()) {
+      this.navArrowContainer.classList.remove('hidden');
       this.navArrowContainer.style.opacity = '1';
       const dx = activeDestination.x - playerPos.x;
       const dz = activeDestination.z - playerPos.z;
@@ -558,6 +673,7 @@ export class UIManager {
       const deg = -(relativeAngle * (180 / Math.PI));
       this.navArrow.style.transform = `rotate(${deg}deg)`;
     } else {
+      this.navArrowContainer.classList.add('hidden');
       this.navArrowContainer.style.opacity = '0';
     }
 

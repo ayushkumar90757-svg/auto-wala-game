@@ -1,6 +1,5 @@
 // AUTO WALA: Dynamic Indian AI Traffic System (Buses, Cars, Trucks, Autos & Bikes)
 import * as THREE from 'three';
-import { sound } from './audio.js';
 
 export class TrafficManager {
   constructor(scene, city) {
@@ -50,9 +49,9 @@ export class TrafficManager {
       vehicle.route = route;
       vehicle.type = type;
       vehicle.speed = (7 + Math.random() * 5); // 25 to 45 km/h
+      vehicle.baseSpeed = vehicle.speed;
       vehicle.speedKmh = vehicle.speed * 3.6;
       vehicle.blockedTimer = 0;
-      vehicle.honkCooldown = 0;
 
       // Position along route
       if (route.dz !== 0) {
@@ -193,7 +192,6 @@ export class TrafficManager {
       let shouldStop = false;
 
       // 1. Check Traffic Signals at intersections
-      // If approaching center intersection (within 10m to 25m) and light is RED for this route
       if (route.dz !== 0) {
         // North-South MG Road
         if (isTrafficLightRed('ns')) {
@@ -208,42 +206,82 @@ export class TrafficManager {
         }
       }
 
-      // 2. Check Obstacle ahead: Player Auto Rickshaw
+      // 2. Check other AI vehicles ahead in the SAME lane
+      let minGapAhead = Infinity;
+      for (let j = 0; j < this.vehicles.length; j++) {
+        const other = this.vehicles[j];
+        if (other === v || other.route.id !== route.id) continue;
+
+        let gap = Infinity;
+        if (route.dz > 0 && other.mesh.position.z > pos.z) {
+          gap = other.mesh.position.z - pos.z;
+        } else if (route.dz < 0 && other.mesh.position.z < pos.z) {
+          gap = pos.z - other.mesh.position.z;
+        } else if (route.dx > 0 && other.mesh.position.x > pos.x) {
+          gap = other.mesh.position.x - pos.x;
+        } else if (route.dx < 0 && other.mesh.position.x < pos.x) {
+          gap = pos.x - other.mesh.position.x;
+        }
+
+        const safeDist = (v.type === 'bus' || v.type === 'truck') ? 14 : 9.5;
+        if (gap > 0 && gap < safeDist && gap < minGapAhead) {
+          minGapAhead = gap;
+          shouldStop = true;
+        }
+      }
+
+      // 3. Check Obstacle ahead: Player Auto Rickshaw
       const dxToPlayer = playerPos.x - pos.x;
       const dzToPlayer = playerPos.z - pos.z;
-      const distToPlayer = Math.sqrt(dxToPlayer * dxToPlayer + dzToPlayer * dzToPlayer);
-
-      // Check if player is directly in front within this vehicle's lane
       let isPlayerAhead = false;
-      if (route.dz > 0 && dzToPlayer > 0 && dzToPlayer < 9 && Math.abs(dxToPlayer) < 2.0) isPlayerAhead = true;
-      if (route.dz < 0 && dzToPlayer < 0 && dzToPlayer > -9 && Math.abs(dxToPlayer) < 2.0) isPlayerAhead = true;
-      if (route.dx > 0 && dxToPlayer > 0 && dxToPlayer < 9 && Math.abs(dzToPlayer) < 2.0) isPlayerAhead = true;
-      if (route.dx < 0 && dxToPlayer < 0 && dxToPlayer > -9 && Math.abs(dzToPlayer) < 2.0) isPlayerAhead = true;
+      if (route.dz > 0 && dzToPlayer > 0 && dzToPlayer < 10 && Math.abs(dxToPlayer) < 2.4) isPlayerAhead = true;
+      if (route.dz < 0 && dzToPlayer < 0 && dzToPlayer > -10 && Math.abs(dxToPlayer) < 2.4) isPlayerAhead = true;
+      if (route.dx > 0 && dxToPlayer > 0 && dxToPlayer < 10 && Math.abs(dzToPlayer) < 2.4) isPlayerAhead = true;
+      if (route.dx < 0 && dxToPlayer < 0 && dxToPlayer > -10 && Math.abs(dzToPlayer) < 2.4) isPlayerAhead = true;
 
       if (isPlayerAhead) {
         shouldStop = true;
         v.blockedTimer += dt;
-        // If player blocks AI for more than 2.5s, AI honks!
-        v.honkCooldown -= dt;
-        if (v.blockedTimer > 2.0 && v.honkCooldown <= 0) {
-          sound.playHorn('peepoo');
-          v.honkCooldown = 3.5;
-        }
       } else {
         v.blockedTimer = 0;
       }
 
-      // 3. Move along lane or decelerate
-      if (!shouldStop) {
-        pos.x += route.dx * v.speed * dt;
-        pos.z += route.dz * v.speed * dt;
+      // 4. Smooth deceleration or acceleration
+      if (shouldStop) {
+        v.speed = Math.max(0, v.speed - 16 * dt);
+      } else {
+        v.speed = Math.min(v.baseSpeed, v.speed + 8 * dt);
       }
 
-      // 4. Recycle vehicle when reaching route bounds
-      if (route.dz > 0 && pos.z > route.endZ) pos.z = route.startZ;
-      if (route.dz < 0 && pos.z < route.endZ) pos.z = route.startZ;
-      if (route.dx > 0 && pos.x > route.endX) pos.x = route.startX;
-      if (route.dx < 0 && pos.x < route.endX) pos.x = route.startX;
+      pos.x += route.dx * v.speed * dt;
+      pos.z += route.dz * v.speed * dt;
+      v.speedKmh = v.speed * 3.6;
+
+      // 5. Recycle vehicle when reaching route bounds (with safe spacing)
+      let needsRecycle = false;
+      if (route.dz > 0 && pos.z > route.endZ) needsRecycle = true;
+      if (route.dz < 0 && pos.z < route.endZ) needsRecycle = true;
+      if (route.dx > 0 && pos.x > route.endX) needsRecycle = true;
+      if (route.dx < 0 && pos.x < route.endX) needsRecycle = true;
+
+      if (needsRecycle) {
+        let minStartDist = Infinity;
+        for (let j = 0; j < this.vehicles.length; j++) {
+          const other = this.vehicles[j];
+          if (other === v || other.route.id !== route.id) continue;
+          let d = 0;
+          if (route.dz !== 0) d = Math.abs(other.mesh.position.z - route.startZ);
+          else d = Math.abs(other.mesh.position.x - route.startX);
+          if (d < minStartDist) minStartDist = d;
+        }
+
+        const stagger = minStartDist < 18 ? 20 - minStartDist : 0;
+        if (route.dz > 0) pos.z = route.startZ - stagger;
+        else if (route.dz < 0) pos.z = route.startZ + stagger;
+        else if (route.dx > 0) pos.x = route.startX - stagger;
+        else if (route.dx < 0) pos.x = route.startX + stagger;
+        v.speed = v.baseSpeed;
+      }
     });
   }
 

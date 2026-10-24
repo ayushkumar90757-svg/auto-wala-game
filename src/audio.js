@@ -20,6 +20,8 @@ class SoundEngine {
     // Horn active state
     this.hornActive = false;
     this.hornOscs = [];
+    this.hornGain = null;
+    this.hornSafetyTimer = null;
   }
 
   init() {
@@ -119,10 +121,21 @@ class SoundEngine {
     this.resume();
     this.hornActive = true;
 
+    if (this.hornSafetyTimer) {
+      clearTimeout(this.hornSafetyTimer);
+    }
+    // Safety auto-cutoff after 3.5 seconds to guarantee horn NEVER plays indefinitely
+    this.hornSafetyTimer = setTimeout(() => {
+      this.stopHorn();
+    }, 3500);
+
     const now = this.ctx.currentTime;
     const hornGain = this.ctx.createGain();
-    hornGain.gain.setValueAtTime(0.28, now);
+    hornGain.gain.setValueAtTime(0.001, now);
+    hornGain.gain.linearRampToValueAtTime(0.28, now + 0.02);
     hornGain.connect(this.masterGain);
+    this.hornGain = hornGain;
+    this.hornOscs = [];
 
     if (tuneType === 'peepoo') {
       // Classic Indian Dual Tone Rickshaw Horn (460 Hz + 580 Hz)
@@ -138,16 +151,14 @@ class SoundEngine {
       osc1.start(now);
       osc2.start(now);
 
-      this.hornOscs = [osc1, osc2, hornGain];
+      this.hornOscs = [osc1, osc2];
     } else if (tuneType === 'pressure') {
       // Highway Truck / Loud Multi-tone Pressure Horn
       const freqs = [380, 480, 620];
-      this.hornOscs = [hornGain];
-      freqs.forEach((f, idx) => {
+      freqs.forEach((f) => {
         const osc = this.ctx.createOscillator();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(f, now);
-        // Slight warble
         osc.frequency.setTargetAtTime(f + 20, now + 0.1, 0.05);
         osc.connect(hornGain);
         osc.start(now);
@@ -160,21 +171,50 @@ class SoundEngine {
       osc.frequency.setValueAtTime(520, now);
       osc.connect(hornGain);
       osc.start(now);
-      this.hornOscs = [osc, hornGain];
+      this.hornOscs = [osc];
     }
   }
 
   stopHorn() {
-    if (!this.hornActive || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    this.hornOscs.forEach(node => {
-      try {
-        if (node.stop) node.stop(now + 0.05);
-        if (node.gain) node.gain.linearRampToValueAtTime(0.001, now + 0.05);
-      } catch(e) {}
-    });
-    this.hornOscs = [];
+    if (this.hornSafetyTimer) {
+      clearTimeout(this.hornSafetyTimer);
+      this.hornSafetyTimer = null;
+    }
+    if (!this.hornActive) return;
     this.hornActive = false;
+
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    if (this.hornGain) {
+      try {
+        this.hornGain.gain.setValueAtTime(this.hornGain.gain.value, now);
+        this.hornGain.gain.linearRampToValueAtTime(0.0001, now + 0.04);
+      } catch (e) {}
+    }
+
+    const oscsToStop = this.hornOscs;
+    const gainToDisconnect = this.hornGain;
+    this.hornOscs = [];
+    this.hornGain = null;
+
+    setTimeout(() => {
+      oscsToStop.forEach(osc => {
+        try {
+          osc.stop();
+          osc.disconnect();
+        } catch (e) {}
+      });
+      if (gainToDisconnect) {
+        try { gainToDisconnect.disconnect(); } catch (e) {}
+      }
+    }, 60);
+  }
+
+  // Force stop all ongoing sounds (engine & horn) for pause, menu, or game over
+  forceSilence() {
+    this.stopHorn();
+    this.stopEngine();
   }
 
   // Coin / Fare Reward Chime (Pentatonic ding)

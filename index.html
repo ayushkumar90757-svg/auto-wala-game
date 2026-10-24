@@ -19,14 +19,14 @@
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
 
-    <!-- 3D Floating 2D Overlay: Direction Arrow -->
-    <div id="nav-arrow-container">
-      <div id="nav-arrow">▲</div>
-      <div id="nav-dist-label">120m</div>
-    </div>
-
     <!-- HUD Overlay -->
     <div id="hud-overlay" class="hidden">
+      <!-- 3D Floating 2D Overlay: Direction Arrow -->
+      <div id="nav-arrow-container" class="hidden">
+        <div id="nav-arrow">▲</div>
+        <div id="nav-dist-label"></div>
+      </div>
+
       <!-- Top Bar -->
       <div class="top-bar">
         <div class="stat-card wallet-card">
@@ -162,6 +162,12 @@
       </div>
 
       <div class="menu-buttons">
+        <button class="desi-btn btn-primary btn-start-hero" id="btn-menu-start">
+          <span class="btn-icon">▶️</span>
+          <span class="btn-text">START GAME</span>
+          <span class="btn-sub">Hit the Indian roads & start driving</span>
+        </button>
+
         <button class="desi-btn btn-primary" id="btn-menu-career">
           <span class="btn-icon">🛺</span>
           <span class="btn-text">CAREER MISSIONS</span>
@@ -451,6 +457,21 @@
         </div>
         <div class="modal-footer">
           <button class="desi-btn btn-primary" id="btn-result-continue">CONTINUE NEXT RIDE 🛺</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME OVER / AUTO TOTALED MODAL -->
+    <div id="gameover-modal" class="screen-overlay hidden">
+      <div class="modal-box gameover-box">
+        <div class="gameover-header">
+          <div class="gameover-icon">💥🛺</div>
+          <h2>AUTO TOTALED!</h2>
+        </div>
+        <p class="gameover-desc">Your rickshaw suffered critical damage in city traffic collisions.</p>
+        <div class="gameover-buttons">
+          <button class="desi-btn btn-primary" id="btn-gameover-restart">REPAIR & RESPAWN (₹50) 🔧</button>
+          <button class="desi-btn btn-secondary" id="btn-gameover-menu">RETURN TO MAIN MENU 🏠</button>
         </div>
       </div>
     </div>
