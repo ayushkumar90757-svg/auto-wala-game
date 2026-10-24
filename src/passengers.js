@@ -19,6 +19,7 @@ export class PassengerSystem {
     this.tripDurationSec = 0;
     this.lastPosition = null;
     this.crashesDuringTrip = 0;
+    this.promptText = null;
 
     // 3D Visual Beacons
     this.pickupZoneMesh = null;
@@ -68,17 +69,39 @@ export class PassengerSystem {
         pickupDialog: '“Beta, Metro Station Gate 2 chalna hai, theek se chalana.”',
         dropDialog: '“Jeete raho beta, khub tarakki karo!”',
         destKey: 'metro'
+      },
+      {
+        name: 'Vikram Bhai (Express Passenger)',
+        avatar: '🧳',
+        pickupDialog: '“Bhaiya, Rajdhani Express se utra hoon, Bapu Bazaar jaldi le chalo!”',
+        dropDialog: '“Shandar driving bhaiya! Ye lo pura kiraya aur chai paani.”',
+        destKey: 'bazaar'
+      },
+      {
+        name: 'Ananya (Family Traveler)',
+        avatar: '👩🏻',
+        pickupDialog: '“Bhaiya, luggage bohot hai, Metro Terminal Gate 2 tak safe chalana.”',
+        dropDialog: '“Bahut shukriya bhaiya! Sabhi bag surakshit pahunch gaye.”',
+        destKey: 'metro'
+      },
+      {
+        name: 'Karan (Daily Commuter)',
+        avatar: '🧑🏽',
+        pickupDialog: '“Bhaiya, Central Railway Station chalna hai, train chhoot na jaye!”',
+        dropDialog: '“Wah bhaiya, train time se mil gayi! Ye lo bonus tip.”',
+        destKey: 'railway'
       }
     ];
 
-    // Roadside Pickup Waiting Spots
+    // Roadside & Station Pickup Waiting Spots
     this.pickupSpots = [
-      { x: 13.5, z: -35 },
-      { x: -13.5, z: 25 },
-      { x: 13.5, z: 85 },
-      { x: -13.5, z: -110 },
-      { x: 30, z: 12.5 },
-      { x: -50, z: -12.5 }
+      { x: 10, z: -164, name: 'Railway Station Auto Stand' },
+      { x: 13.5, z: -35, name: 'MG Road South' },
+      { x: -13.5, z: 25, name: 'MG Road North' },
+      { x: 13.5, z: 85, name: 'Market Crossing' },
+      { x: -13.5, z: -110, name: 'Metro Avenue' },
+      { x: 30, z: 12.5, name: 'Expressway East' },
+      { x: -50, z: -12.5, name: 'Hospital Approach' }
     ];
 
     this.createMarkers();
@@ -238,6 +261,8 @@ export class PassengerSystem {
       this.dropoffZoneMesh.scale.set(s, 1, s);
     }
 
+    this.promptText = null;
+
     if (!this.hasActiveRide) {
       // 1. Check if player enters pickup zone and slows down
       if (this.currentPassenger) {
@@ -245,9 +270,16 @@ export class PassengerSystem {
         const dz = playerPos.z - this.currentPassenger.pickupZ;
         const dist = Math.sqrt(dx * dx + dz * dz);
 
-        // Player is inside pickup circle and stopped / slowing below 12 km/h
-        if (dist < 4.0 && Math.abs(playerSpeedKmh) < 14) {
-          this.startRide(playerPos);
+        // Player is inside pickup circle and stopped / slowing below 14 km/h
+        if (dist < 4.2) {
+          if (Math.abs(playerSpeedKmh) < 14) {
+            this.promptText = "🛺 BOARDING PASSENGER...";
+            this.startRide(playerPos);
+          } else {
+            this.promptText = "🛑 SLOW DOWN TO BOARD PASSENGER";
+          }
+        } else if (dist < 28) {
+          this.promptText = `📍 PASSENGER WAITING (${Math.round(dist)}m) - STOP IN YELLOW CIRCLE`;
         }
       }
     } else {
@@ -271,8 +303,15 @@ export class PassengerSystem {
       const dzDest = playerPos.z - dest.z;
       const distToDest = Math.sqrt(dxDest * dxDest + dzDest * dzDest);
 
-      if (distToDest < 4.5 && Math.abs(playerSpeedKmh) < 12) {
-        this.completeRide();
+      if (distToDest < 4.8) {
+        if (Math.abs(playerSpeedKmh) < 12) {
+          this.promptText = "✅ DROPPING OFF PASSENGER...";
+          this.completeRide();
+        } else {
+          this.promptText = "🛑 BRAKE & STOP IN GREEN DROP-OFF ZONE";
+        }
+      } else if (distToDest < 40) {
+        this.promptText = `📍 ARRIVING AT ${dest.name.toUpperCase()} (${Math.round(distToDest)}m)`;
       }
     }
   }

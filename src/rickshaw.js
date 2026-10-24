@@ -428,8 +428,8 @@ export class Rickshaw {
     if (this.rearRightWheel) this.rearRightWheel.rotation.x += wheelRot;
 
     // 3. Indian Rickshaw Leaning Physics!
-    // When turning at speed, chassis rolls inwards/outwards realistically
-    const targetRoll = -steerAngle * Math.min(1.0, Math.abs(speedKmh) / 45) * 0.18;
+    // Centrifugal lean: when turning left, chassis leans to right
+    const targetRoll = steerAngle * Math.min(1.0, Math.abs(speedKmh) / 45) * 0.18;
     this.chassis.rotation.z += (targetRoll - this.chassis.rotation.z) * 0.15;
 
     // Subtle pitch on acceleration / braking

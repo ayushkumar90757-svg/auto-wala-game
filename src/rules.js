@@ -56,19 +56,111 @@ export class TrafficRules {
     const isEWYellow = (this.signalState === 'ew_yellow');
 
     this.city.trafficLights.forEach(light => {
-      // id 0 & 1 are North-South, 2 & 3 are East-West
       const isNS = (light.id === 0 || light.id === 1);
+      const isRed = isNS ? (!isNSGreen && !isNSYellow) : (!isEWGreen && !isEWYellow);
+      const isYel = isNS ? isNSYellow : isEWYellow;
+      const isGrn = isNS ? isNSGreen : isEWGreen;
 
-      if (isNS) {
-        light.redLens.material.color.setHex((!isNSGreen && !isNSYellow) ? 0xFF1744 : 0x330000);
-        light.yelLens.material.color.setHex(isNSYellow ? 0xFFEA00 : 0x332600);
-        light.grnLens.material.color.setHex(isNSGreen ? 0x00E676 : 0x003311);
-      } else {
-        light.redLens.material.color.setHex((!isEWGreen && !isEWYellow) ? 0xFF1744 : 0x330000);
-        light.yelLens.material.color.setHex(isEWYellow ? 0xFFEA00 : 0x332600);
-        light.grnLens.material.color.setHex(isEWGreen ? 0x00E676 : 0x003311);
+      if (light.redLens) {
+        light.redLens.material.color.setHex(isRed ? 0xFF1744 : 0x220000);
+        if (light.redLens.material.emissive) {
+          light.redLens.material.emissive.setHex(isRed ? 0xFF1744 : 0x000000);
+          light.redLens.material.emissiveIntensity = isRed ? 2.5 : 0;
+        }
+      }
+      if (light.yelLens) {
+        light.yelLens.material.color.setHex(isYel ? 0xFFEA00 : 0x221800);
+        if (light.yelLens.material.emissive) {
+          light.yelLens.material.emissive.setHex(isYel ? 0xFFEA00 : 0x000000);
+          light.yelLens.material.emissiveIntensity = isYel ? 2.5 : 0;
+        }
+      }
+      if (light.grnLens) {
+        light.grnLens.material.color.setHex(isGrn ? 0x00E676 : 0x002208);
+        if (light.grnLens.material.emissive) {
+          light.grnLens.material.emissive.setHex(isGrn ? 0x00E676 : 0x000000);
+          light.grnLens.material.emissiveIntensity = isGrn ? 2.5 : 0;
+        }
       }
     });
+  }
+
+  // Get detailed signal information for HUD indicators and driver alerts
+  getSignalStatus(pos, speedKmh) {
+    const isNS = Math.abs(pos.z) > Math.abs(pos.x);
+    let distToStopLine = 999;
+    let approachingIntersection = false;
+
+    // Check distance to center intersection at (0, 0)
+    if (isNS) {
+      if (Math.abs(pos.x) < 14 && Math.abs(pos.z) < 75) {
+        approachingIntersection = true;
+        if (pos.z < -14) {
+          distToStopLine = -18 - pos.z;
+        } else if (pos.z > 14) {
+          distToStopLine = pos.z - 18;
+        } else {
+          distToStopLine = 0;
+        }
+      }
+    } else {
+      if (Math.abs(pos.z) < 14 && Math.abs(pos.x) < 75) {
+        approachingIntersection = true;
+        if (pos.x < -14) {
+          distToStopLine = -18 - pos.x;
+        } else if (pos.x > 14) {
+          distToStopLine = pos.x - 18;
+        } else {
+          distToStopLine = 0;
+        }
+      }
+    }
+
+    let color = 'GREEN';
+    let instruction = 'INTERSECTION CLEAR - GO';
+    let badgeClass = 'sig-green';
+
+    if (isNS) {
+      if (this.signalState === 'ns_yellow') {
+        color = 'YELLOW';
+        instruction = 'SLOW DOWN - PREPARE TO STOP';
+        badgeClass = 'sig-yellow';
+      } else if (this.signalState === 'ew_green' || this.signalState === 'ew_yellow') {
+        color = 'RED';
+        instruction = 'RED SIGNAL - STOP BEHIND LINE';
+        badgeClass = 'sig-red';
+      }
+    } else {
+      if (this.signalState === 'ew_yellow') {
+        color = 'YELLOW';
+        instruction = 'SLOW DOWN - PREPARE TO STOP';
+        badgeClass = 'sig-yellow';
+      } else if (this.signalState === 'ns_green' || this.signalState === 'ns_yellow') {
+        color = 'RED';
+        instruction = 'RED SIGNAL - STOP BEHIND LINE';
+        badgeClass = 'sig-red';
+      }
+    }
+
+    const distMeters = Math.max(0, Math.round(distToStopLine));
+    const needBrakeHint = (approachingIntersection && color !== 'GREEN' && distMeters < 45 && distMeters > 3 && speedKmh > 16);
+
+    // Speed limits in Bapu Bazaar and Hospital
+    const inBazaar = (pos.x > 8 && pos.x < 32 && pos.z > 30 && pos.z < 95);
+    const inHospital = (pos.x > -70 && pos.x < -30 && pos.z > 45 && pos.z < 95);
+    const speedLimit = (inBazaar || inHospital) ? 40 : 60;
+    const isSpeeding = speedKmh > (speedLimit + 3);
+
+    return {
+      approachingIntersection,
+      color,
+      instruction,
+      distMeters,
+      needBrakeHint,
+      speedLimit,
+      isSpeeding,
+      badgeClass
+    };
   }
 
   // Query if a route is currently facing a Red light

@@ -403,6 +403,52 @@ class TextureFactory {
     this.cache.set(key, texture);
     return texture;
   }
+
+  // Auto Stand Signboard
+  createAutoStandSign() {
+    const key = 'sign_autostand';
+    if (this.cache.has(key)) return this.cache.get(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFC107';
+    ctx.fillRect(0, 0, 512, 128);
+    ctx.fillStyle = '#0D7B3E';
+    ctx.fillRect(8, 8, 496, 112);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 34px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🛺 AUTO RICKSHAW STAND', 256, 52);
+    ctx.fillStyle = '#FFD54F';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillText('RAILWAY STATION • PRE-PAID BOOTH', 256, 92);
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set(key, texture);
+    return texture;
+  }
+
+  // Platform Signboards
+  createPlatformSign(num = 1) {
+    const key = `sign_plat_${num}`;
+    if (this.cache.has(key)) return this.cache.get(key);
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 80;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0D47A1';
+    ctx.fillRect(0, 0, 256, 80);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(4, 4, 248, 72);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`PLATFORM ${num}`, 128, 50);
+    const texture = new THREE.CanvasTexture(canvas);
+    this.cache.set(key, texture);
+    return texture;
+  }
 }
 
 export const textureFactory = new TextureFactory();

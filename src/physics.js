@@ -32,10 +32,10 @@ export class VehiclePhysics {
     // Upgradable Specs
     this.specs = {
       maxSpeedKmh: 48,      // Base top speed (Upgrade Level 1: 48, Level 5: 85)
-      accelForce: 9.5,       // m/s^2
-      brakeForce: 24.0,      // m/s^2
+      accelForce: 10.5,     // Responsive acceleration
+      brakeForce: 28.0,     // Strong, reliable brakes
       reverseMaxSpeedKmh: 18,
-      steerSpeed: 3.2,
+      steerSpeed: 6.5,      // Responsive, agile 3-wheeler steering
       maxSteerAngle: 0.62,   // ~35 degrees max front wheel turn
       drag: 0.985,           // Air resistance
       friction: 0.96         // Rolling tyre friction
@@ -78,14 +78,13 @@ export class VehiclePhysics {
     if (this.isDead) return;
     dt = Math.min(0.05, Math.max(0.001, dt)); // Clamp dt for stability
 
-    // 1. Steering Dynamics
-    // High responsiveness at low speed, gentle at high speed
+    // 1. Steering Dynamics (Left key/button steers LEFT, Right steers RIGHT)
     const speedRatio = Math.min(1.0, Math.abs(this.speedKmh) / 60);
     const targetMaxSteer = this.specs.maxSteerAngle * (1.0 - speedRatio * 0.45);
-    const targetSteer = this.steerInput * targetMaxSteer;
+    const targetSteer = -this.steerInput * targetMaxSteer;
 
-    // Smooth steering interpolation
-    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1.0, this.specs.steerSpeed * 3.5 * dt);
+    // Smooth, rapid steering interpolation
+    this.steerAngle += (targetSteer - this.steerAngle) * Math.min(1.0, this.specs.steerSpeed * 2.8 * dt);
 
     // 2. Nitro Handling
     let boostMultiplier = 1.0;

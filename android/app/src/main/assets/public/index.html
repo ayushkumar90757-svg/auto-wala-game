@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800&family=Yatra+One&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/index-C92iJgJo.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CLB4A6l0.css">
+  <script type="module" crossorigin src="./assets/index-BkDD834g.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CxQSMW2s.css">
 </head>
 <body>
   <!-- 3D Canvas -->
@@ -128,23 +128,82 @@
         <span class="alert-text" id="alert-text">Challan Issued: Red Light -₹200</span>
       </div>
 
+      <!-- Live Traffic Signal & Intersection HUD Widget -->
+      <div id="hud-signal-widget" class="signal-hud-widget hidden">
+        <div class="signal-mini-housing">
+          <div class="sig-bulb sig-bulb-red" id="sig-bulb-red"></div>
+          <div class="sig-bulb sig-bulb-yellow" id="sig-bulb-yellow"></div>
+          <div class="sig-bulb sig-bulb-green" id="sig-bulb-green"></div>
+        </div>
+        <div class="signal-info-panel">
+          <div class="sig-status-badge sig-green" id="sig-status-badge">GREEN: GO</div>
+          <div class="sig-instruction" id="sig-instruction">Intersection clear</div>
+          <div class="sig-distance" id="sig-dist-label">Stop Line: 35m</div>
+        </div>
+      </div>
+
+      <!-- Action Prompt Banner (Station Arrival / Boarding Prompts) -->
+      <div id="hud-action-prompt" class="hud-action-prompt hidden">
+        <span class="action-prompt-icon" id="action-prompt-icon">📍</span>
+        <span class="action-prompt-text" id="action-prompt-text">ARRIVING AT DESTINATION</span>
+      </div>
+
+      <!-- Brake Hint / Caution Warning Banner -->
+      <div id="hud-brake-hint" class="hud-brake-hint hidden">
+        <span class="brake-hint-icon">🛑</span>
+        <span class="brake-hint-text">TAP BRAKE TO STOP SAFELY!</span>
+      </div>
+
+      <!-- Speed Limit Badge -->
+      <div id="hud-speed-badge" class="hud-speed-badge hidden">
+        <div class="speed-sign-circle">
+          <span class="speed-sign-val">40</span>
+          <span class="speed-sign-lbl">KM/H</span>
+        </div>
+        <div class="speed-sign-info">
+          <span class="speed-sign-zone">CROWDED ZONE</span>
+          <span class="speed-sign-alert">MAX 40 KM/H</span>
+        </div>
+      </div>
+
       <!-- Mobile Touch Controls -->
       <div id="touch-controls">
         <!-- Left Side: Steering -->
         <div class="touch-left">
-          <button class="touch-btn steer-btn" id="touch-left">◀</button>
-          <button class="touch-btn steer-btn" id="touch-right">▶</button>
+          <button class="touch-btn steer-btn" id="touch-left" aria-label="Steer Left">
+            <span class="touch-icon">◀</span>
+            <span class="touch-lbl">LEFT</span>
+          </button>
+          <button class="touch-btn steer-btn" id="touch-right" aria-label="Steer Right">
+            <span class="touch-icon">▶</span>
+            <span class="touch-lbl">RIGHT</span>
+          </button>
         </div>
         <!-- Center Quick Horn -->
         <div class="touch-center">
-          <button class="touch-btn horn-btn" id="touch-horn">🎺 HORN</button>
-          <button class="touch-btn nos-btn" id="touch-nos">⚡ NOS</button>
+          <button class="touch-btn horn-btn" id="touch-horn">
+            <span class="touch-icon">🎺</span>
+            <span class="touch-lbl">HORN</span>
+          </button>
+          <button class="touch-btn nos-btn" id="touch-nos">
+            <span class="touch-icon">⚡</span>
+            <span class="touch-lbl">NOS</span>
+          </button>
         </div>
         <!-- Right Side: Gas & Brake -->
         <div class="touch-right">
-          <button class="touch-btn brake-btn" id="touch-brake">REVERSE / BRAKE</button>
-          <button class="touch-btn gas-btn" id="touch-gas">ACCELERATE</button>
-          <button class="touch-btn handbrake-btn" id="touch-handbrake">HANDBRAKE</button>
+          <button class="touch-btn brake-btn" id="touch-brake">
+            <span class="touch-icon">🛑</span>
+            <span class="touch-lbl">BRAKE / REV</span>
+          </button>
+          <button class="touch-btn gas-btn" id="touch-gas">
+            <span class="touch-icon">⚡</span>
+            <span class="touch-lbl">GAS</span>
+          </button>
+          <button class="touch-btn handbrake-btn" id="touch-handbrake">
+            <span class="touch-icon">🌀</span>
+            <span class="touch-lbl">DRIFT</span>
+          </button>
         </div>
       </div>
     </div>

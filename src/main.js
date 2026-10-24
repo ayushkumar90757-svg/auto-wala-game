@@ -27,9 +27,9 @@ class Game {
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.BasicShadowMap;
 
     // Camera setup
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 800);
@@ -38,6 +38,7 @@ class Game {
     this.cameraMode = this.cameraModes[this.currentCameraIdx];
     this.gameState = 'menu'; // 'menu' | 'playing' | 'paused' | 'gameover'
     this.menuCameraAngle = 0;
+    this.graphicsQuality = 'medium';
 
     // Environment Lighting
     this.isNight = false;
@@ -279,9 +280,44 @@ class Game {
       this.physics.setTrafficVehicles(this.traffic.getTrafficVehicles());
       this.ui.showAlert(`Traffic density set to ${density.toUpperCase()}`, '🚦', true);
     };
+    this.ui.onGraphicsChange = (quality) => {
+      this.applyGraphicsSettings(quality);
+    };
     this.ui.onVolumeChange = (vol) => {
       sound.setVolume(vol);
     };
+  }
+
+  applyGraphicsSettings(quality = 'medium') {
+    this.graphicsQuality = quality;
+
+    if (quality === 'low') {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
+      this.renderer.shadowMap.enabled = false;
+      if (this.sunLight) this.sunLight.castShadow = false;
+      this.traffic.setDensity('low');
+    } else if (quality === 'high') {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      if (this.sunLight) {
+        this.sunLight.castShadow = true;
+        this.sunLight.shadow.mapSize.set(1024, 1024);
+      }
+      this.traffic.setDensity('high');
+    } else {
+      // Medium
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.15));
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.BasicShadowMap;
+      if (this.sunLight) {
+        this.sunLight.castShadow = true;
+        this.sunLight.shadow.mapSize.set(512, 512);
+      }
+      this.traffic.setDensity('medium');
+    }
+
+    this.physics.setTrafficVehicles(this.traffic.getTrafficVehicles());
   }
 
   updateCamera(dt) {
@@ -337,7 +373,13 @@ class Game {
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    const dt = this.clock.getDelta();
+    const dt = Math.min(0.04, this.clock.getDelta());
+
+    // Update input states before physics to avoid 1-frame input lag
+    this.ui.updateInputs();
+
+    let signalStatus = null;
+    let promptText = null;
 
     if (this.gameState === 'playing') {
       // 1. Update Vehicle Physics with user inputs
@@ -357,9 +399,11 @@ class Game {
 
       // 4. Update Traffic Rules (Signals & Challans)
       this.rules.update(dt, this.physics.position, this.physics.speedKmh);
+      signalStatus = this.rules.getSignalStatus(this.physics.position, this.physics.speedKmh);
 
       // 5. Update Passenger Rides
       this.passengers.update(dt, this.physics.position, this.physics.speedKmh);
+      promptText = this.passengers.promptText;
 
       // 6. Update Career Missions
       const missionStatus = this.missionManager.update(dt, this.physics.speedKmh, this.ui.inputs.handbrake);
@@ -412,7 +456,9 @@ class Game {
       activeDest,
       this.physics.position,
       this.physics.heading,
-      this.traffic.getTrafficVehicles()
+      this.traffic.getTrafficVehicles(),
+      signalStatus,
+      promptText
     );
 
     // 9. Render 3D Scene

@@ -45,9 +45,23 @@ export class UIManager {
     this.alertText = document.getElementById('alert-text');
     this.alertTimeout = null;
 
+    // Traffic Signal & Speed Limit HUD
+    this.hudSignalWidget = document.getElementById('hud-signal-widget');
+    this.sigBulbRed = document.getElementById('sig-bulb-red');
+    this.sigBulbYellow = document.getElementById('sig-bulb-yellow');
+    this.sigBulbGreen = document.getElementById('sig-bulb-green');
+    this.sigStatusBadge = document.getElementById('sig-status-badge');
+    this.sigInstruction = document.getElementById('sig-instruction');
+    this.sigDistLabel = document.getElementById('sig-dist-label');
+    this.hudActionPrompt = document.getElementById('hud-action-prompt');
+    this.actionPromptText = document.getElementById('action-prompt-text');
+    this.hudBrakeHint = document.getElementById('hud-brake-hint');
+    this.hudSpeedBadge = document.getElementById('hud-speed-badge');
+
     // Minimap
     this.minimapCanvas = document.getElementById('minimap-canvas');
     this.minimapCtx = this.minimapCanvas.getContext('2d');
+    this.minimapCounter = 0;
 
     // Modals
     this.mainMenu = document.getElementById('main-menu');
@@ -72,6 +86,7 @@ export class UIManager {
     this.onResumeGame = null;
     this.onRestartGame = null;
     this.onQuitToMenu = null;
+    this.onGraphicsChange = null;
 
     this.keysDown = {};
     this.bindEvents();
@@ -145,7 +160,7 @@ export class UIManager {
       }
     });
 
-    this.updateKeyboardInputs = () => {
+    this.updateInputs = () => {
       let steer = 0;
       let throttle = 0;
       let brake = 0;
@@ -158,13 +173,25 @@ export class UIManager {
       const handbrake = !!this.keysDown['Space'];
       const nitro = !!(this.keysDown['ShiftLeft'] || this.keysDown['ShiftRight']);
 
-      // Blend touch inputs if active
+      // Blend touch and keyboard inputs
       this.inputs.steer = steer !== 0 ? steer : this.touchSteer;
-      this.inputs.throttle = throttle !== 0 ? throttle : this.touchThrottle;
-      this.inputs.brake = brake !== 0 ? brake : this.touchBrake;
+
+      let rawThrottle = throttle !== 0 ? throttle : this.touchThrottle;
+      let rawBrake = brake !== 0 ? brake : this.touchBrake;
+
+      // Ensure accelerator does not activate brake and vice versa
+      if (rawBrake > 0) {
+        this.inputs.brake = rawBrake;
+        this.inputs.throttle = 0;
+      } else {
+        this.inputs.brake = 0;
+        this.inputs.throttle = rawThrottle;
+      }
+
       this.inputs.handbrake = handbrake || this.touchHandbrake;
       this.inputs.nitro = nitro || this.touchNitro;
     };
+    this.updateKeyboardInputs = this.updateInputs;
 
     // 2. Mobile Pointer & Touch Buttons
     this.touchSteer = 0;
@@ -333,6 +360,14 @@ export class UIManager {
     }
 
     // Settings listeners
+    const graphicsSel = document.getElementById('setting-graphics');
+    if (graphicsSel) {
+      graphicsSel.addEventListener('change', (e) => {
+        if (this.onGraphicsChange) this.onGraphicsChange(e.target.value);
+        this.showAlert(`Graphics quality set to ${e.target.value.toUpperCase()}`, '⚙️', true);
+      });
+    }
+
     const trafficSel = document.getElementById('setting-traffic');
     if (trafficSel) {
       trafficSel.addEventListener('change', (e) => {
@@ -613,8 +648,8 @@ export class UIManager {
   }
 
   // Update HUD elements every frame
-  updateHUD(speedKmh, health, nitro, isReversing, passengerSystem, activeDestination, playerPos, playerHeading, trafficVehicles) {
-    this.updateKeyboardInputs();
+  updateHUD(speedKmh, health, nitro, isReversing, passengerSystem, activeDestination, playerPos, playerHeading, trafficVehicles, signalStatus = null, promptText = null) {
+    this.updateInputs();
 
     // 1. Speedometer Needle & Display
     const absSpeed = Math.abs(Math.round(speedKmh));
@@ -677,8 +712,47 @@ export class UIManager {
       this.navArrowContainer.style.opacity = '0';
     }
 
-    // 4. Draw 2D Radar Minimap
-    this.renderMinimap(playerPos, playerHeading, activeDestination, trafficVehicles);
+    // 4. Live Traffic Signal & Intersection HUD Widget
+    if (signalStatus && this.isGameplayActive() && signalStatus.approachingIntersection) {
+      this.hudSignalWidget.classList.remove('hidden');
+      this.sigBulbRed.classList.toggle('active', signalStatus.color === 'RED');
+      this.sigBulbYellow.classList.toggle('active', signalStatus.color === 'YELLOW');
+      this.sigBulbGreen.classList.toggle('active', signalStatus.color === 'GREEN');
+      this.sigStatusBadge.innerText = `${signalStatus.color}: ${signalStatus.color === 'RED' ? 'STOP' : (signalStatus.color === 'YELLOW' ? 'SLOW' : 'GO')}`;
+      this.sigStatusBadge.className = `sig-status-badge ${signalStatus.badgeClass}`;
+      this.sigInstruction.innerText = signalStatus.instruction;
+      this.sigDistLabel.innerText = signalStatus.distMeters > 0 ? `Stop Line: ${signalStatus.distMeters}m` : 'Inside Intersection';
+    } else {
+      this.hudSignalWidget.classList.add('hidden');
+    }
+
+    // 5. Brake Hint Alert
+    if (signalStatus && this.isGameplayActive() && signalStatus.needBrakeHint) {
+      this.hudBrakeHint.classList.remove('hidden');
+    } else {
+      this.hudBrakeHint.classList.add('hidden');
+    }
+
+    // 6. Speed Limit Alert
+    if (signalStatus && this.isGameplayActive() && signalStatus.isSpeeding) {
+      this.hudSpeedBadge.classList.remove('hidden');
+    } else {
+      this.hudSpeedBadge.classList.add('hidden');
+    }
+
+    // 7. Interactive Action Prompts (Station arrival, Boarding prompts)
+    if (promptText && this.isGameplayActive()) {
+      this.hudActionPrompt.classList.remove('hidden');
+      this.actionPromptText.innerText = promptText;
+    } else {
+      this.hudActionPrompt.classList.add('hidden');
+    }
+
+    // 8. Draw 2D Radar Minimap (throttled every 3 frames for 60fps performance)
+    this.minimapCounter = (this.minimapCounter || 0) + 1;
+    if (this.minimapCounter % 3 === 0) {
+      this.renderMinimap(playerPos, playerHeading, activeDestination, trafficVehicles);
+    }
   }
 
   // Draw circular radar minimap

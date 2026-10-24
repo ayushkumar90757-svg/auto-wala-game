@@ -56,7 +56,7 @@ jobs:
       - name: Prepare Named APK Files
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk Auto-Wala-Indian-City-Life.apk
-          cp android/app/build/outputs/apk/debug/app-debug.apk Auto-Wala-Indian-City-Life-v1.1.0.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk Auto-Wala-Indian-City-Life-v1.2.0.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -65,24 +65,24 @@ jobs:
           path: Auto-Wala-Indian-City-Life.apk
           retention-days: 14
 
-      - name: Publish v1.1.0 Release with APK
+      - name: Publish v1.2.0 Release with APK
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.1.0
-          name: "Auto Wala: Indian City Life v1.1.0 (Android APK)"
+          tag_name: v1.2.0
+          name: "Auto Wala: Indian City Life v1.2.0 (Android APK)"
           draft: false
           prerelease: false
           body: |
-            ### 🛺 AUTO WALA: Indian City Life - Version 1.1.0 (Latest Release)
+            ### 🛺 AUTO WALA: Indian City Life - Version 1.2.0 (Latest Release)
 
-            **Key Improvements & Bug Fixes in v1.1.0:**
-            - 🎺 **Horn Bug Fixed:** Horn never plays automatically or loops; only sounds when pressed and held.
-            - 🚗 **Steering & Physics Fixed:** Inverted steering corrected; smooth 3-wheel leaning into turns.
-            - 🚦 **AI Traffic Lane Spacing:** Vehicles now detect traffic ahead in the same lane and stop cleanly without stacking or overlapping.
-            - 🎯 **HUD & Start Screen Fixed:** Stuck "120m" and arrow overlay removed from start menu; added dedicated **START GAME** button.
-            - 📱 **Android Touch Controls:** Fast, non-blocking pointer events with zero stuck touch states.
-            - 💥 **Crash & Game Over Screen:** Vehicle breakdown triggers repair and main menu options.
+            **Key Improvements & Upgrades in v1.2.0:**
+            - 🏎️ **Performance Boost & Graphics Settings:** Added Low, Medium, and High graphics presets with adaptive DPR and shadow cascade scaling. Throttled minimap drawing to eliminate 66% canvas overhead.
+            - 🔄 **Fixed Steering Inversion & Input Delay:** Steering left turns Left, steering right turns Right across keyboard and touch. Steering lag reduced from 350ms to instantaneous response.
+            - 🚦 **Clear Traffic Light HUD & Stop Lines:** Enlarged 3D traffic light lenses with emissive glow, added physical stop lines on road approaches, and integrated real-time HUD signal indicators, distance countdowns, and brake warnings.
+            - 🚉 **Central Railway Station & Auto Stand:** Modeled a 64m colonial red sandstone station with clock tower, platform boards (Platform 1/2), train tracks, concourse benches, and dedicated Auto Rickshaw Stand & Pre-paid Booth.
+            - 🎮 **Upgraded Driving Controls:** Clear mutual exclusivity between accelerator and brake/reverse with distinct green and red buttons.
+            - 🎯 **Railway Missions & Payouts:** Added railway commuter pickups and dynamic HUD station arrival banners.
 
             **How to Install on Android:**
             1. Download `Auto-Wala-Indian-City-Life.apk` below.
@@ -91,4 +91,4 @@ jobs:
             4. Launch and drive!
           files: |
             Auto-Wala-Indian-City-Life.apk
-            Auto-Wala-Indian-City-Life-v1.1.0.apk
+            Auto-Wala-Indian-City-Life-v1.2.0.apk

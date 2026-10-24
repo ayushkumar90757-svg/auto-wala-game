@@ -617,22 +617,48 @@ html, body {
   border-color: #80D8FF;
 }
 
+.touch-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.touch-lbl {
+  font-size: 9px;
+  font-family: var(--font-tech);
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+}
+
+.steer-btn .touch-icon {
+  font-size: 22px;
+}
+
 .gas-btn {
-  width: 76px;
-  height: 76px;
-  background: rgba(13, 123, 62, 0.9);
-  border-color: #69F0AE;
-  font-size: 12px;
-  text-align: center;
+  width: 78px;
+  height: 78px;
+  background: linear-gradient(135deg, rgba(13, 123, 62, 0.95), rgba(46, 125, 50, 0.95)) !important;
+  border: 2.5px solid #4EFA90 !important;
+  box-shadow: 0 4px 16px rgba(78, 250, 144, 0.4);
+}
+
+.gas-btn .touch-lbl {
+  color: #E8F5E9;
+  font-weight: 800;
+  font-size: 11px;
 }
 
 .brake-btn {
-  width: 70px;
-  height: 70px;
-  background: rgba(211, 47, 47, 0.9);
-  border-color: #FF8A80;
-  font-size: 11px;
-  text-align: center;
+  width: 78px;
+  height: 78px;
+  background: linear-gradient(135deg, rgba(211, 47, 47, 0.95), rgba(183, 28, 28, 0.95)) !important;
+  border: 2.5px solid #FF5252 !important;
+  box-shadow: 0 4px 16px rgba(255, 82, 82, 0.4);
+}
+
+.brake-btn .touch-lbl {
+  color: #FFEBEE;
+  font-weight: 800;
+  font-size: 10px;
 }
 
 .handbrake-btn {
@@ -640,6 +666,224 @@ html, body {
   font-size: 11px;
   height: 50px;
   background: rgba(245, 124, 0, 0.85);
+}
+
+/* Live Traffic Signal & Intersection HUD Widget */
+.signal-hud-widget {
+  position: absolute;
+  top: 72px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(14, 18, 24, 0.92);
+  border: 1.5px solid rgba(255, 184, 0, 0.4);
+  border-radius: 16px;
+  padding: 8px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  z-index: 60;
+  pointer-events: none;
+  animation: slideInDown 0.25s ease-out;
+}
+
+.signal-mini-housing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #111;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+
+.sig-bulb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #222;
+  transition: all 0.15s ease;
+}
+
+.sig-bulb-red.active {
+  background: #FF1744;
+  box-shadow: 0 0 10px #FF1744, 0 0 16px rgba(255, 23, 68, 0.8);
+}
+
+.sig-bulb-yellow.active {
+  background: #FFEA00;
+  box-shadow: 0 0 10px #FFEA00, 0 0 16px rgba(255, 234, 0, 0.8);
+}
+
+.sig-bulb-green.active {
+  background: #00E676;
+  box-shadow: 0 0 10px #00E676, 0 0 16px rgba(0, 230, 118, 0.8);
+}
+
+.signal-info-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.sig-status-badge {
+  font-family: var(--font-tech);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.sig-status-badge.sig-red {
+  color: #FF5252;
+}
+
+.sig-status-badge.sig-yellow {
+  color: #FFD600;
+}
+
+.sig-status-badge.sig-green {
+  color: #4EFA90;
+}
+
+.sig-instruction {
+  font-size: 11px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+.sig-distance {
+  font-size: 10px;
+  font-family: var(--font-tech);
+  color: var(--desi-yellow);
+  font-weight: 700;
+}
+
+/* Action Prompt Banner */
+.hud-action-prompt {
+  position: absolute;
+  top: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(14, 20, 28, 0.94);
+  border: 2px solid #FFD600;
+  border-radius: 20px;
+  padding: 6px 18px;
+  box-shadow: 0 4px 20px rgba(255, 214, 0, 0.35);
+  z-index: 65;
+  pointer-events: none;
+  animation: bounceIn 0.3s ease-out;
+}
+
+.action-prompt-icon {
+  font-size: 18px;
+}
+
+.action-prompt-text {
+  font-family: var(--font-tech);
+  font-size: 13px;
+  font-weight: 800;
+  color: #FFF;
+  letter-spacing: 0.5px;
+}
+
+/* Brake Hint Banner */
+.hud-brake-hint {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(183, 28, 28, 0.94);
+  border: 2px solid #FF5252;
+  border-radius: 20px;
+  padding: 6px 16px;
+  box-shadow: 0 0 20px rgba(255, 82, 82, 0.6);
+  z-index: 70;
+  pointer-events: none;
+  animation: pulseAlert 0.8s infinite alternate;
+}
+
+.brake-hint-icon {
+  font-size: 18px;
+}
+
+.brake-hint-text {
+  font-family: var(--font-tech);
+  font-size: 13px;
+  font-weight: 800;
+  color: #FFF;
+  letter-spacing: 0.5px;
+}
+
+/* Speed Limit Badge */
+.hud-speed-badge {
+  position: absolute;
+  top: 72px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(20, 24, 30, 0.92);
+  border: 1.5px solid rgba(255, 82, 82, 0.6);
+  border-radius: 16px;
+  padding: 6px 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+  z-index: 60;
+  pointer-events: none;
+}
+
+.speed-sign-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FFF;
+  border: 3.5px solid #D32F2F;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.speed-sign-val {
+  font-family: var(--font-tech);
+  font-size: 14px;
+  font-weight: 900;
+  color: #111;
+}
+
+.speed-sign-lbl {
+  font-size: 6px;
+  font-weight: 800;
+  color: #D32F2F;
+}
+
+.speed-sign-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.speed-sign-zone {
+  font-size: 10px;
+  color: #aaa;
+  font-weight: 600;
+}
+
+.speed-sign-alert {
+  font-family: var(--font-tech);
+  font-size: 12px;
+  font-weight: 800;
+  color: #FF5252;
+}
+
+@keyframes pulseAlert {
+  from { transform: translateX(-50%) scale(0.96); opacity: 0.9; }
+  to { transform: translateX(-50%) scale(1.04); opacity: 1; }
 }
 
 /* SCREEN OVERLAYS / MODALS */

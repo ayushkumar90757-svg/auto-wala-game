@@ -120,6 +120,32 @@ export class IndianCity {
       this.cityGroup.add(zMesh);
     });
 
+    // Solid White & Yellow STOP LINES before each zebra crossing
+    const stopLineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+    const yellowStopLineMat = new THREE.MeshBasicMaterial({ color: 0xFFD600 });
+
+    const stopLines = [
+      // MG Road Southbound (stop before z = -14)
+      { x: 0, z: -18, w: 22, h: 0.9, mat: stopLineMat },
+      { x: 0, z: -19.2, w: 22, h: 0.45, mat: yellowStopLineMat },
+      // MG Road Northbound (stop before z = 14)
+      { x: 0, z: 18, w: 22, h: 0.9, mat: stopLineMat },
+      { x: 0, z: 19.2, w: 22, h: 0.45, mat: yellowStopLineMat },
+      // Expressway Eastbound (stop before x = -14)
+      { x: -18, z: 0, w: 0.9, h: 20, mat: stopLineMat },
+      { x: -19.2, z: 0, w: 0.45, h: 20, mat: yellowStopLineMat },
+      // Expressway Westbound (stop before x = 14)
+      { x: 18, z: 0, w: 0.9, h: 20, mat: stopLineMat },
+      { x: 19.2, z: 0, w: 0.45, h: 20, mat: yellowStopLineMat }
+    ];
+
+    stopLines.forEach(sl => {
+      const slMesh = new THREE.Mesh(new THREE.PlaneGeometry(sl.w, sl.h), sl.mat);
+      slMesh.rotation.x = -Math.PI / 2;
+      slMesh.position.set(sl.x, 0.035, sl.z);
+      this.cityGroup.add(slMesh);
+    });
+
     // Central Road Median Divider with Yellow-Black Kerb on MG Road
     const medianGeo = new THREE.BoxGeometry(0.8, 0.35, 380);
     const median = new THREE.Mesh(medianGeo, kerbMat);
@@ -364,34 +390,158 @@ export class IndianCity {
   buildLandmarks() {
     // A. Central Railway Station (At North End: X = 0, Z = -185)
     const stationGroup = new THREE.Group();
-    const stationMat = new THREE.MeshStandardMaterial({ color: 0xA93226, roughness: 0.7 });
+    const stationMat = new THREE.MeshStandardMaterial({ color: 0x8E281F, roughness: 0.7 }); // Heritage Red Sandstone
     const whiteTrimMat = new THREE.MeshStandardMaterial({ color: 0xFDFEFE, roughness: 0.5 });
+    const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x212121, metalness: 0.7 });
 
-    // Main Station Heritage Facade
-    const facadeGeo = new THREE.BoxGeometry(45, 18, 14);
+    // Main Station Heritage Terminal Facade
+    const facadeGeo = new THREE.BoxGeometry(64, 18, 16);
     const facade = new THREE.Mesh(facadeGeo, stationMat);
     facade.position.set(0, 9, -188);
     stationGroup.add(facade);
 
-    // Heritage Clock Tower Dome in center
-    const domeTowerGeo = new THREE.BoxGeometry(10, 26, 10);
+    // Side Wings (East and West Wings)
+    [-30, 30].forEach(wingX => {
+      const wingGeo = new THREE.BoxGeometry(14, 14, 18);
+      const wing = new THREE.Mesh(wingGeo, stationMat);
+      wing.position.set(wingX, 7, -186);
+      stationGroup.add(wing);
+
+      // Mini corner ornamental cupolas
+      const miniCupola = new THREE.Mesh(new THREE.SphereGeometry(2.2, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2), whiteTrimMat);
+      miniCupola.position.set(wingX, 14, -186);
+      stationGroup.add(miniCupola);
+    });
+
+    // Heritage Clock Tower in center
+    const domeTowerGeo = new THREE.BoxGeometry(12, 28, 12);
     const domeTower = new THREE.Mesh(domeTowerGeo, stationMat);
-    domeTower.position.set(0, 13, -185);
+    domeTower.position.set(0, 14, -185);
     stationGroup.add(domeTower);
 
-    const domeGeo = new THREE.SphereGeometry(4.8, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+    // Large Round Clock Face
+    const clockFace = new THREE.Mesh(
+      new THREE.CircleGeometry(2.4, 24),
+      new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+    );
+    clockFace.position.set(0, 22, -178.9);
+    stationGroup.add(clockFace);
+
+    // Clock Hands
+    const clockHandH = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.05), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    clockHandH.position.set(0, 22.4, -178.85);
+    stationGroup.add(clockHandH);
+    const clockHandM = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.2, 0.05), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+    clockHandM.position.set(0.6, 22, -178.85);
+    stationGroup.add(clockHandM);
+
+    // Mughal Dome on top of Tower
+    const domeGeo = new THREE.SphereGeometry(5.4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
     const dome = new THREE.Mesh(domeGeo, whiteTrimMat);
-    dome.position.set(0, 26, -185);
+    dome.position.set(0, 28, -185);
     stationGroup.add(dome);
 
-    // Station Sign
+    // Grand Entrance Archway Porch
+    const porchGeo = new THREE.BoxGeometry(22, 7, 6);
+    const porch = new THREE.Mesh(porchGeo, stationMat);
+    porch.position.set(0, 3.5, -178);
+    stationGroup.add(porch);
+
+    // Main Station Signboard
     const stSignTex = textureFactory.createShopSign('station');
-    const stSignGeo = new THREE.PlaneGeometry(16, 4);
+    const stSignGeo = new THREE.PlaneGeometry(18, 4.5);
     const stSign = new THREE.Mesh(stSignGeo, new THREE.MeshBasicMaterial({ map: stSignTex }));
-    stSign.position.set(0, 10, -180.8);
+    stSign.position.set(0, 9.8, -174.8);
     stationGroup.add(stSign);
 
-    this.addBoxCollider(-23, 23, -196, -180);
+    // Platform 1 & Platform 2 Canopies on West Side (X = -32, Z = -168 to -195)
+    const platRoofGeo = new THREE.BoxGeometry(14, 0.5, 32);
+    const platRoofMat = new THREE.MeshStandardMaterial({ color: 0x37474F, roughness: 0.7 });
+    const platRoof = new THREE.Mesh(platRoofGeo, platRoofMat);
+    platRoof.position.set(-32, 6.5, -178);
+    stationGroup.add(platRoof);
+
+    // Platform Support Pillars
+    [-170, -186].forEach(pz => {
+      const pCol = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 6.5, 8), darkMetalMat);
+      pCol.position.set(-32, 3.25, pz);
+      stationGroup.add(pCol);
+    });
+
+    // Platform 1 and 2 Signboards
+    const p1Sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.3), new THREE.MeshBasicMaterial({ map: textureFactory.createPlatformSign(1) }));
+    p1Sign.position.set(-25.2, 5.2, -175);
+    p1Sign.rotation.y = Math.PI / 2;
+    stationGroup.add(p1Sign);
+
+    const p2Sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.3), new THREE.MeshBasicMaterial({ map: textureFactory.createPlatformSign(2) }));
+    p2Sign.position.set(-38.8, 5.2, -175);
+    p2Sign.rotation.y = -Math.PI / 2;
+    stationGroup.add(p2Sign);
+
+    // Railway Tracks (Two Parallel Tracks with steel rails)
+    [-30, -34].forEach(railX => {
+      [-0.7, 0.7].forEach(offset => {
+        const railBar = new THREE.Mesh(
+          new THREE.BoxGeometry(0.12, 0.15, 45),
+          new THREE.MeshStandardMaterial({ color: 0xB0BEC5, metalness: 0.9 })
+        );
+        railBar.position.set(railX + offset, 0.12, -180);
+        stationGroup.add(railBar);
+      });
+    });
+
+    // Railway Station Passenger Waiting Concourse & Benches
+    const benchMat = new THREE.MeshStandardMaterial({ color: 0x5D4037, roughness: 0.9 });
+    [ { x: -6, z: -176 }, { x: 6, z: -176 } ].forEach(bPos => {
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.85, 0.7), benchMat);
+      bench.position.set(bPos.x, 0.42, bPos.z);
+      stationGroup.add(bench);
+    });
+
+    // Passenger Luggage Bags Stack
+    const bagMat = new THREE.MeshStandardMaterial({ color: 0x1565C0 });
+    const luggage = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.6, 0.5), bagMat);
+    luggage.position.set(4, 0.3, -176);
+    stationGroup.add(luggage);
+
+    // DESIGNATED AUTO RICKSHAW STAND & DRIVEWAY BAY (X: 5 to 16, Z: -155 to -174)
+    // Green-tinted dedicated auto parking apron
+    const standApronGeo = new THREE.PlaneGeometry(12, 22);
+    const standApronMat = new THREE.MeshStandardMaterial({ color: 0x1B382B, roughness: 0.8 });
+    const standApron = new THREE.Mesh(standApronGeo, standApronMat);
+    standApron.rotation.x = -Math.PI / 2;
+    standApron.position.set(10.5, 0.035, -164);
+    stationGroup.add(standApron);
+
+    // Yellow Painted Auto Bay Parking Slots on Tarmac
+    const bayLineMat = new THREE.MeshBasicMaterial({ color: 0xFFD600 });
+    for (let bz = -172; bz <= -156; bz += 5) {
+      const bayLine = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.25), bayLineMat);
+      bayLine.rotation.x = -Math.PI / 2;
+      bayLine.position.set(10.5, 0.04, bz);
+      stationGroup.add(bayLine);
+    }
+
+    // Overhead "AUTO RICKSHAW STAND" Gantry Portal Signboard
+    const gantryGroup = new THREE.Group();
+    const gPostL = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5.2, 8), darkMetalMat);
+    gPostL.position.set(4.5, 2.6, -156);
+    const gPostR = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 5.2, 8), darkMetalMat);
+    gPostR.position.set(16.5, 2.6, -156);
+    gantryGroup.add(gPostL);
+    gantryGroup.add(gPostR);
+
+    const autoStandSign = new THREE.Mesh(
+      new THREE.PlaneGeometry(12, 3),
+      new THREE.MeshBasicMaterial({ map: textureFactory.createAutoStandSign() })
+    );
+    autoStandSign.position.set(10.5, 4.4, -156);
+    gantryGroup.add(autoStandSign);
+
+    stationGroup.add(gantryGroup);
+
+    this.addBoxCollider(-38, 38, -196, -177);
     this.cityGroup.add(stationGroup);
 
     // B. Apollo Hospital & Medical Zone (At X = -60, Z = 70)
@@ -462,7 +612,7 @@ export class IndianCity {
 
     // Register Landmark Zones for Passenger Missions
     this.landmarks = {
-      railway: { name: 'Central Railway Station', x: 0, z: -170, color: 0xFF1744 },
+      railway: { name: 'Central Railway Station Auto Stand', x: 10, z: -164, color: 0xFF1744 },
       chowk: { name: 'Gandhi Chowk Roundabout', x: 0, z: 16, color: 0xFFC107 },
       bazaar: { name: 'Bapu Bazaar Market', x: 16, z: 60, color: 0xFF6D00 },
       hospital: { name: 'Apollo 24/7 Hospital', x: -45, z: 65, color: 0x00E676 },
@@ -522,23 +672,32 @@ export class IndianCity {
       pole.position.y = 2.75;
       sigGroup.add(pole);
 
-      // 3-Light Traffic Signal Box (Red, Yellow, Green)
-      const boxGeo = new THREE.BoxGeometry(0.5, 1.4, 0.4);
-      const box = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({ color: 0x1A1A1A }));
-      box.position.set(0, 4.5, 0);
+      // Large, Prominent 3-Light Traffic Signal Box (Red, Yellow, Green)
+      const boxGeo = new THREE.BoxGeometry(0.85, 2.2, 0.45);
+      const box = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 }));
+      box.position.set(0, 4.8, 0);
       sigGroup.add(box);
 
-      // Red, Yellow, Green lens meshes
-      const redLens = new THREE.Mesh(new THREE.CircleGeometry(0.12, 12), new THREE.MeshBasicMaterial({ color: 0xFF1744 }));
-      redLens.position.set(0, 4.9, 0.21);
+      // Yellow border rim around signal head for authentic Indian street look
+      const rimGeo = new THREE.BoxGeometry(0.95, 2.3, 0.05);
+      const rim = new THREE.Mesh(rimGeo, new THREE.MeshStandardMaterial({ color: 0xFFC107 }));
+      rim.position.set(0, 4.8, -0.05);
+      sigGroup.add(rim);
+
+      // Large Red, Yellow, Green lens meshes with emissive glow for daylight & night
+      const redMat = new THREE.MeshStandardMaterial({ color: 0xFF1744, emissive: 0xFF1744, emissiveIntensity: 2.2, roughness: 0.3 });
+      const redLens = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), redMat);
+      redLens.position.set(0, 5.4, 0.23);
       sigGroup.add(redLens);
 
-      const yelLens = new THREE.Mesh(new THREE.CircleGeometry(0.12, 12), new THREE.MeshBasicMaterial({ color: 0x332600 }));
-      yelLens.position.set(0, 4.5, 0.21);
+      const yelMat = new THREE.MeshStandardMaterial({ color: 0x332600, emissive: 0x000000, emissiveIntensity: 0, roughness: 0.3 });
+      const yelLens = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), yelMat);
+      yelLens.position.set(0, 4.8, 0.23);
       sigGroup.add(yelLens);
 
-      const grnLens = new THREE.Mesh(new THREE.CircleGeometry(0.12, 12), new THREE.MeshBasicMaterial({ color: 0x003311 }));
-      grnLens.position.set(0, 4.1, 0.21);
+      const grnMat = new THREE.MeshStandardMaterial({ color: 0x003311, emissive: 0x000000, emissiveIntensity: 0, roughness: 0.3 });
+      const grnLens = new THREE.Mesh(new THREE.CircleGeometry(0.24, 16), grnMat);
+      grnLens.position.set(0, 4.2, 0.23);
       sigGroup.add(grnLens);
 
       this.cityGroup.add(sigGroup);
@@ -551,7 +710,7 @@ export class IndianCity {
         redLens,
         yelLens,
         grnLens,
-        state: 'green' // 'red', 'yellow', 'green'
+        state: 'green'
       });
     });
   }
