@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>AUTO WALA: Indian City Life - 3D Auto Rickshaw Driving Simulator</title>
-  <link rel="manifest" href="/manifest.json" />
+  <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#FFB800" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,22 +12,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700;800&family=Yatra+One&family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-DknvF72_.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-Dvq08ORe.css">
+  <script type="module" crossorigin src="./assets/index-C92iJgJo.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CLB4A6l0.css">
 </head>
 <body>
   <!-- 3D Canvas -->
   <div id="game-container">
     <canvas id="game-canvas"></canvas>
 
-    <!-- 3D Floating 2D Overlay: Direction Arrow -->
-    <div id="nav-arrow-container">
-      <div id="nav-arrow">▲</div>
-      <div id="nav-dist-label">120m</div>
-    </div>
-
     <!-- HUD Overlay -->
     <div id="hud-overlay" class="hidden">
+      <!-- 3D Floating 2D Overlay: Direction Arrow -->
+      <div id="nav-arrow-container" class="hidden">
+        <div id="nav-arrow">▲</div>
+        <div id="nav-dist-label"></div>
+      </div>
+
       <!-- Top Bar -->
       <div class="top-bar">
         <div class="stat-card wallet-card">
@@ -163,6 +163,12 @@
       </div>
 
       <div class="menu-buttons">
+        <button class="desi-btn btn-primary btn-start-hero" id="btn-menu-start">
+          <span class="btn-icon">▶️</span>
+          <span class="btn-text">START GAME</span>
+          <span class="btn-sub">Hit the Indian roads & start driving</span>
+        </button>
+
         <button class="desi-btn btn-primary" id="btn-menu-career">
           <span class="btn-icon">🛺</span>
           <span class="btn-text">CAREER MISSIONS</span>
@@ -452,6 +458,21 @@
         </div>
         <div class="modal-footer">
           <button class="desi-btn btn-primary" id="btn-result-continue">CONTINUE NEXT RIDE 🛺</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME OVER / AUTO TOTALED MODAL -->
+    <div id="gameover-modal" class="screen-overlay hidden">
+      <div class="modal-box gameover-box">
+        <div class="gameover-header">
+          <div class="gameover-icon">💥🛺</div>
+          <h2>AUTO TOTALED!</h2>
+        </div>
+        <p class="gameover-desc">Your rickshaw suffered critical damage in city traffic collisions.</p>
+        <div class="gameover-buttons">
+          <button class="desi-btn btn-primary" id="btn-gameover-restart">REPAIR & RESPAWN (₹50) 🔧</button>
+          <button class="desi-btn btn-secondary" id="btn-gameover-menu">RETURN TO MAIN MENU 🏠</button>
         </div>
       </div>
     </div>

@@ -7,6 +7,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build Auto Wala APK
@@ -50,9 +53,42 @@ jobs:
           cd android
           ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Prepare Named APK Files
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Auto-Wala-Indian-City-Life.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk Auto-Wala-Indian-City-Life-v1.1.0.apk
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Auto-Wala-Indian-City-Life-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: Auto-Wala-Indian-City-Life.apk
           retention-days: 14
+
+      - name: Publish v1.1.0 Release with APK
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.1.0
+          name: "Auto Wala: Indian City Life v1.1.0 (Android APK)"
+          draft: false
+          prerelease: false
+          body: |
+            ### 🛺 AUTO WALA: Indian City Life - Version 1.1.0 (Latest Release)
+
+            **Key Improvements & Bug Fixes in v1.1.0:**
+            - 🎺 **Horn Bug Fixed:** Horn never plays automatically or loops; only sounds when pressed and held.
+            - 🚗 **Steering & Physics Fixed:** Inverted steering corrected; smooth 3-wheel leaning into turns.
+            - 🚦 **AI Traffic Lane Spacing:** Vehicles now detect traffic ahead in the same lane and stop cleanly without stacking or overlapping.
+            - 🎯 **HUD & Start Screen Fixed:** Stuck "120m" and arrow overlay removed from start menu; added dedicated **START GAME** button.
+            - 📱 **Android Touch Controls:** Fast, non-blocking pointer events with zero stuck touch states.
+            - 💥 **Crash & Game Over Screen:** Vehicle breakdown triggers repair and main menu options.
+
+            **How to Install on Android:**
+            1. Download `Auto-Wala-Indian-City-Life.apk` below.
+            2. Tap the downloaded file on your Android device.
+            3. If prompted, allow "Install unknown apps" in Settings.
+            4. Launch and drive!
+          files: |
+            Auto-Wala-Indian-City-Life.apk
+            Auto-Wala-Indian-City-Life-v1.1.0.apk
